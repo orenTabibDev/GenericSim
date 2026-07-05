@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <!-- Support files that define the base C types and the align/swap helpers.
+       They are embedded so the generated WrapperFromCToSharp project is always self-contained. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\typelib.h" />
+    <EmbeddedResource Include="Templates\convlib.h" />
+    <EmbeddedResource Include="Templates\convlib.c" />
+  </ItemGroup>
+
+</Project>
