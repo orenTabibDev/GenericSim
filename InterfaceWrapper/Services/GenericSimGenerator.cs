@@ -23,11 +23,31 @@ namespace InterfaceWrapper.Services
         public static string ProjectGuidString => ProjectGuid.ToString();
 
         private readonly ParseResult _parseResult;
+        private readonly string _sourceName;
+        private readonly string _destinationName;
 
-        public GenericSimGenerator(ParseResult parseResult)
+        public GenericSimGenerator(ParseResult parseResult, string sourceName = "MBT", string destinationName = "NIRON")
         {
             _parseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
+            _sourceName = SanitizeSide(sourceName, "MBT");
+            _destinationName = SanitizeSide(destinationName, "NIRON");
         }
+
+        /// <summary>Keeps only characters that are safe in both XAML and C# string literals.</summary>
+        private static string SanitizeSide(string? name, string fallback)
+        {
+            var cleaned = new string((name ?? string.Empty)
+                .Where(c => char.IsLetterOrDigit(c) || c is '_' or '-' or ' ').ToArray()).Trim();
+            return cleaned.Length == 0 ? fallback : cleaned;
+        }
+
+        /// <summary>Replaces the default side names (MBT / NIRON) with the user provided Source and
+        /// Destination names. Temp tokens make swapped names (e.g. source = NIRON) safe.</summary>
+        private string ApplySides(string content) => content
+            .Replace("MBT", "\uE000")
+            .Replace("NIRON", "\uE001")
+            .Replace("\uE000", _sourceName)
+            .Replace("\uE001", _destinationName);
 
         /// <summary>
         /// Generates the GenericSim project next to the generated wrapper project.
@@ -42,12 +62,15 @@ namespace InterfaceWrapper.Services
             written.Add(WriteFile(Path.Combine(projectDir, ProjectName + ".csproj"), BuildCsproj()));
             written.Add(WriteFile(Path.Combine(projectDir, "App.xaml"), BuildAppXaml()));
             written.Add(WriteFile(Path.Combine(projectDir, "App.xaml.cs"), BuildAppXamlCs()));
-            written.Add(WriteFile(Path.Combine(projectDir, "MainWindow.xaml"), BuildMainWindowXaml()));
-            written.Add(WriteFile(Path.Combine(projectDir, "MainWindow.xaml.cs"), BuildMainWindowXamlCs()));
+            written.Add(WriteFile(Path.Combine(projectDir, "MainWindow.xaml"), ApplySides(BuildMainWindowXaml())));
+            written.Add(WriteFile(Path.Combine(projectDir, "MainWindow.xaml.cs"), ApplySides(BuildMainWindowXamlCs())));
             written.Add(WriteFile(Path.Combine(projectDir, "MessageCatalog.cs"), BuildMessageCatalog()));
-            written.Add(WriteFile(Path.Combine(projectDir, "Models.cs"), BuildModels()));
+            written.Add(WriteFile(Path.Combine(projectDir, "Models.cs"), ApplySides(BuildModels())));
+            written.Add(WriteFile(Path.Combine(projectDir, "Scenario.cs"), BuildScenario()));
+            written.Add(WriteFile(Path.Combine(projectDir, "Recording.cs"), BuildRecording()));
             written.Add(WriteFile(Path.Combine(projectDir, "Transports.cs"), BuildTransports()));
-            written.Add(WriteFile(Path.Combine(projectDir, "README.md"), BuildReadme()));
+            written.Add(WriteFile(Path.Combine(projectDir, "PrecisionTimer.cs"), BuildPrecisionTimer()));
+            written.Add(WriteFile(Path.Combine(projectDir, "README.md"), ApplySides(BuildReadme())));
 
             return written;
         }
@@ -128,39 +151,59 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        Title=\"MBT Side Professional Simulator\" Height=\"820\" Width=\"1380\"");
             sb.AppendLine("        Background=\"#0E1621\" Foreground=\"#E6EDF3\">");
             sb.AppendLine("    <Window.Resources>");
-            sb.AppendLine("        <Style TargetType=\"TextBlock\"><Setter Property=\"Foreground\" Value=\"#E6EDF3\"/></Style>");
+            sb.AppendLine("        <!-- Theme brushes: swapped at runtime by the Look and Feel selector in the header. -->");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.WindowBackground\" Color=\"#0E1621\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.PanelBackground\" Color=\"#0B1220\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.Foreground\" Color=\"#E6EDF3\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.DimForeground\" Color=\"#7A8CA0\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.HeaderForeground\" Color=\"#8FB4D9\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.Border\" Color=\"#22303C\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.RowBackground\" Color=\"#132030\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.AltRowBackground\" Color=\"#0F1A28\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.Accent\" Color=\"#1F6FEB\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.TabBackground\" Color=\"#8FB4D9\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.TabForeground\" Color=\"#000000\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.GridHeaderForeground\" Color=\"#000000\"/>");
+            sb.AppendLine("        <SolidColorBrush x:Key=\"Theme.GraphRx\" Color=\"#FFFFFF\"/>");
+            sb.AppendLine("        <Style TargetType=\"TextBlock\"><Setter Property=\"Foreground\" Value=\"{DynamicResource Theme.Foreground}\"/></Style>");
             sb.AppendLine("        <Style TargetType=\"GroupBox\">");
-            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"#8FB4D9\"/>");
-            sb.AppendLine("            <Setter Property=\"BorderBrush\" Value=\"#22303C\"/>");
+            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"{DynamicResource Theme.HeaderForeground}\"/>");
+            sb.AppendLine("            <Setter Property=\"BorderBrush\" Value=\"{DynamicResource Theme.Border}\"/>");
             sb.AppendLine("            <Setter Property=\"Margin\" Value=\"6\"/>");
             sb.AppendLine("            <Setter Property=\"Padding\" Value=\"6\"/>");
             sb.AppendLine("        </Style>");
             sb.AppendLine("        <Style TargetType=\"DataGrid\">");
-            sb.AppendLine("            <Setter Property=\"Background\" Value=\"#0E1621\"/>");
-            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"#E6EDF3\"/>");
-            sb.AppendLine("            <Setter Property=\"RowBackground\" Value=\"#132030\"/>");
-            sb.AppendLine("            <Setter Property=\"AlternatingRowBackground\" Value=\"#0F1A28\"/>");
+            sb.AppendLine("            <Setter Property=\"Background\" Value=\"{DynamicResource Theme.WindowBackground}\"/>");
+            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"{DynamicResource Theme.Foreground}\"/>");
+            sb.AppendLine("            <Setter Property=\"RowBackground\" Value=\"{DynamicResource Theme.RowBackground}\"/>");
+            sb.AppendLine("            <Setter Property=\"AlternatingRowBackground\" Value=\"{DynamicResource Theme.AltRowBackground}\"/>");
             sb.AppendLine("            <Setter Property=\"GridLinesVisibility\" Value=\"Horizontal\"/>");
-            sb.AppendLine("            <Setter Property=\"BorderBrush\" Value=\"#22303C\"/>");
+            sb.AppendLine("            <Setter Property=\"BorderBrush\" Value=\"{DynamicResource Theme.Border}\"/>");
             sb.AppendLine("            <Setter Property=\"HeadersVisibility\" Value=\"Column\"/>");
             sb.AppendLine("        </Style>");
-            sb.AppendLine("        <!-- Column header text in black for all tables. -->");
+            sb.AppendLine("        <!-- Column header text follows the theme. -->");
             sb.AppendLine("        <Style TargetType=\"DataGridColumnHeader\">");
-            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"Black\"/>");
+            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"{DynamicResource Theme.GridHeaderForeground}\"/>");
             sb.AppendLine("            <Setter Property=\"FontWeight\" Value=\"Bold\"/>");
             sb.AppendLine("            <Setter Property=\"Padding\" Value=\"6,4\"/>");
             sb.AppendLine("        </Style>");
             sb.AppendLine("        <Style TargetType=\"Button\">");
-            sb.AppendLine("            <Setter Property=\"Background\" Value=\"#1F6FEB\"/>");
+            sb.AppendLine("            <Setter Property=\"Background\" Value=\"{DynamicResource Theme.Accent}\"/>");
             sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"White\"/>");
             sb.AppendLine("            <Setter Property=\"BorderThickness\" Value=\"0\"/>");
             sb.AppendLine("            <Setter Property=\"Padding\" Value=\"8,5\"/>");
             sb.AppendLine("            <Setter Property=\"Margin\" Value=\"0,3\"/>");
             sb.AppendLine("        </Style>");
             sb.AppendLine("        <Style TargetType=\"TextBox\">");
-            sb.AppendLine("            <Setter Property=\"Background\" Value=\"#0B1220\"/>");
-            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"#E6EDF3\"/>");
-            sb.AppendLine("            <Setter Property=\"BorderBrush\" Value=\"#22303C\"/>");
+            sb.AppendLine("            <Setter Property=\"Background\" Value=\"{DynamicResource Theme.PanelBackground}\"/>");
+            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"{DynamicResource Theme.Foreground}\"/>");
+            sb.AppendLine("            <Setter Property=\"BorderBrush\" Value=\"{DynamicResource Theme.Border}\"/>");
+            sb.AppendLine("        </Style>");
+            sb.AppendLine("        <Style TargetType=\"TabItem\">");
+            sb.AppendLine("            <Setter Property=\"Background\" Value=\"{DynamicResource Theme.TabBackground}\"/>");
+            sb.AppendLine("            <Setter Property=\"Foreground\" Value=\"{DynamicResource Theme.TabForeground}\"/>");
+            sb.AppendLine("            <Setter Property=\"FontWeight\" Value=\"Bold\"/>");
+            sb.AppendLine("            <Setter Property=\"Padding\" Value=\"14,4\"/>");
             sb.AppendLine("        </Style>");
             sb.AppendLine("    </Window.Resources>");
             sb.AppendLine();
@@ -168,7 +211,6 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        <Grid.RowDefinitions>");
             sb.AppendLine("            <RowDefinition Height=\"Auto\"/>");
             sb.AppendLine("            <RowDefinition Height=\"*\"/>");
-            sb.AppendLine("            <RowDefinition Height=\"220\"/>");
             sb.AppendLine("        </Grid.RowDefinitions>");
             sb.AppendLine();
             // Header / connection bar
@@ -179,6 +221,14 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            </Grid.ColumnDefinitions>");
             sb.AppendLine("            <TextBlock Text=\"MBT Side Simulator\" FontSize=\"22\" FontWeight=\"Bold\" VerticalAlignment=\"Center\"/>");
             sb.AppendLine("            <StackPanel Grid.Column=\"1\" Orientation=\"Horizontal\" VerticalAlignment=\"Center\">");
+            sb.AppendLine("                <TextBlock Text=\"Look &amp; Feel\" VerticalAlignment=\"Center\" Margin=\"6,0\"/>");
+            sb.AppendLine("                <ComboBox x:Name=\"ThemeCombo\" Width=\"120\" VerticalAlignment=\"Center\" SelectedIndex=\"0\"");
+            sb.AppendLine("                          SelectionChanged=\"ThemeCombo_SelectionChanged\" ToolTip=\"Change the application look and feel\">");
+            sb.AppendLine("                    <ComboBoxItem Content=\"Dark Blue\"/>");
+            sb.AppendLine("                    <ComboBoxItem Content=\"Midnight Black\"/>");
+            sb.AppendLine("                    <ComboBoxItem Content=\"Light\"/>");
+            sb.AppendLine("                    <ComboBoxItem Content=\"Military Green\"/>");
+            sb.AppendLine("                </ComboBox>");
             sb.AppendLine("                <TextBlock Text=\"Transport\" VerticalAlignment=\"Center\" Margin=\"6,0\"/>");
             sb.AppendLine("                <ComboBox x:Name=\"TransportCombo\" Width=\"75\" VerticalAlignment=\"Center\" SelectedIndex=\"0\"");
             sb.AppendLine("                          SelectionChanged=\"TransportCombo_SelectionChanged\">");
@@ -196,9 +246,9 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                <StackPanel x:Name=\"NetworkPanel\" Orientation=\"Horizontal\">");
             sb.AppendLine("                    <TextBlock Text=\"Local Port\" VerticalAlignment=\"Center\" Margin=\"8,0,6,0\"/>");
             sb.AppendLine("                    <TextBox x:Name=\"LocalPortBox\" Text=\"5001\" Width=\"60\" VerticalAlignment=\"Center\"/>");
-            sb.AppendLine("                    <TextBlock Text=\"MBT IP\" VerticalAlignment=\"Center\" Margin=\"12,0,6,0\"/>");
+            sb.AppendLine("                    <TextBlock Text=\"NIRON IP\" VerticalAlignment=\"Center\" Margin=\"12,0,6,0\"/>");
             sb.AppendLine("                    <TextBox x:Name=\"RemoteIpBox\" Text=\"127.0.0.1\" Width=\"100\" VerticalAlignment=\"Center\"/>");
-            sb.AppendLine("                    <TextBlock Text=\"MBT Port\" VerticalAlignment=\"Center\" Margin=\"12,0,6,0\"/>");
+            sb.AppendLine("                    <TextBlock Text=\"NIRON Port\" VerticalAlignment=\"Center\" Margin=\"12,0,6,0\"/>");
             sb.AppendLine("                    <TextBox x:Name=\"RemotePortBox\" Text=\"5000\" Width=\"60\" VerticalAlignment=\"Center\"/>");
             sb.AppendLine("                </StackPanel>");
             sb.AppendLine("                <StackPanel x:Name=\"SerialPanel\" Orientation=\"Horizontal\" Visibility=\"Collapsed\">");
@@ -233,11 +283,22 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                </StackPanel>");
             sb.AppendLine("                <Button x:Name=\"StartButton\" Content=\"Start\" Background=\"#238636\" Margin=\"12,0,0,0\" Click=\"Start_Click\"/>");
             sb.AppendLine("                <Button x:Name=\"StopButton\" Content=\"Stop\" Background=\"#DA3633\" Margin=\"6,0,0,0\" Click=\"Stop_Click\"/>");
+            sb.AppendLine("                <Button x:Name=\"RecordButton\" Content=\"\u25CF Record\" Background=\"#6E40C9\" Margin=\"6,0,0,0\" Click=\"Record_Click\"");
+            sb.AppendLine("                        ToolTip=\"Record all incoming and outgoing messages to a binary file\"/>");
             sb.AppendLine("            </StackPanel>");
             sb.AppendLine("        </Grid>");
             sb.AppendLine();
+            // Tabs: Simulator (original UI) + Scenario (drag & drop sequencer)
+            sb.AppendLine("        <TabControl Grid.Row=\"1\" Background=\"#0E1621\" BorderBrush=\"#22303C\">");
+            sb.AppendLine("            <TabItem Header=\"Simulator\">");
+            sb.AppendLine("                <Grid>");
+            sb.AppendLine("                    <Grid.RowDefinitions>");
+            sb.AppendLine("                        <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                        <RowDefinition Height=\"220\"/>");
+            sb.AppendLine("                    </Grid.RowDefinitions>");
+            sb.AppendLine();
             // Main 3-column area
-            sb.AppendLine("        <Grid Grid.Row=\"1\">");
+            sb.AppendLine("        <Grid Grid.Row=\"0\">");
             sb.AppendLine("            <Grid.ColumnDefinitions>");
             sb.AppendLine("                <ColumnDefinition Width=\"300\"/>");
             sb.AppendLine("                <ColumnDefinition Width=\"*\"/>");
@@ -347,7 +408,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        </Grid>");
             sb.AppendLine();
             // Bottom: history + traffic log
-            sb.AppendLine("        <Grid Grid.Row=\"2\">");
+            sb.AppendLine("        <Grid Grid.Row=\"1\">");
             sb.AppendLine("            <Grid.ColumnDefinitions>");
             sb.AppendLine("                <ColumnDefinition Width=\"*\"/>");
             sb.AppendLine("                <ColumnDefinition Width=\"420\"/>");
@@ -378,9 +439,484 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                </DockPanel>");
             sb.AppendLine("            </GroupBox>");
             sb.AppendLine("        </Grid>");
+            sb.AppendLine("                </Grid>");
+            sb.AppendLine("            </TabItem>");
+            AppendScenarioTabXaml(sb);
+            AppendRecordTabXaml(sb);
+            AppendGraphTabXaml(sb);
+            AppendRecordGraphTabXaml(sb);
+            AppendStatisticsTabXaml(sb);
+            sb.AppendLine("        </TabControl>");
             sb.AppendLine("    </Grid>");
             sb.AppendLine("</Window>");
-            return sb.ToString();
+            return ThemeifyXaml(sb.ToString());
+        }
+
+        /// <summary>Rewrites the inline hex colors to theme DynamicResource references so the
+        /// Look &amp; Feel selector can restyle the whole window at runtime.</summary>
+        private static string ThemeifyXaml(string xaml) => xaml
+            .Replace("Background=\"#0E1621\"", "Background=\"{DynamicResource Theme.WindowBackground}\"")
+            .Replace("Background=\"#0B1220\"", "Background=\"{DynamicResource Theme.PanelBackground}\"")
+            .Replace("Background=\"#1F6FEB\"", "Background=\"{DynamicResource Theme.Accent}\"")
+            .Replace("Foreground=\"#E6EDF3\"", "Foreground=\"{DynamicResource Theme.Foreground}\"")
+            .Replace("Foreground=\"#7A8CA0\"", "Foreground=\"{DynamicResource Theme.DimForeground}\"")
+            .Replace("Foreground=\"#8FB4D9\"", "Foreground=\"{DynamicResource Theme.HeaderForeground}\"")
+            .Replace("Foreground=\"#FFFFFF\"", "Foreground=\"{DynamicResource Theme.GraphRx}\"")
+            .Replace("BorderBrush=\"#22303C\"", "BorderBrush=\"{DynamicResource Theme.Border}\"");
+
+        /// <summary>
+        /// The Scenario tab: an "All Messages" palette on the left, a drag &amp; drop step list
+        /// in the middle (each step with its own asynchronous send attributes) and a log below.
+        /// </summary>
+        private static void AppendScenarioTabXaml(StringBuilder sb)
+        {
+            sb.AppendLine("            <TabItem Header=\"Scenario\">");
+            sb.AppendLine("                <Grid>");
+            sb.AppendLine("                    <Grid.RowDefinitions>");
+            sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                        <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                        <RowDefinition Height=\"170\"/>");
+            sb.AppendLine("                    </Grid.RowDefinitions>");
+            sb.AppendLine();
+            // Scenario toolbar: New / Open / Save on the left, Run / Stop on the right.
+            sb.AppendLine("                    <DockPanel Grid.Row=\"0\" Margin=\"6,4\">");
+            sb.AppendLine("                        <StackPanel DockPanel.Dock=\"Right\" Orientation=\"Horizontal\">");
+            sb.AppendLine("                            <Button Content=\"\u25B6 Run\" Background=\"#238636\" Width=\"80\" Click=\"RunScenario_Click\"/>");
+            sb.AppendLine("                            <Button Content=\"\u25A0 Stop\" Background=\"#DA3633\" Width=\"80\" Margin=\"6,3,0,3\" Click=\"StopScenario_Click\"/>");
+            sb.AppendLine("                        </StackPanel>");
+            sb.AppendLine("                        <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                            <Button Content=\"New Scenario\" Click=\"NewScenario_Click\"/>");
+            sb.AppendLine("                            <Button Content=\"Open\" Margin=\"6,3,0,3\" Click=\"OpenScenario_Click\"/>");
+            sb.AppendLine("                            <Button Content=\"Save\" Margin=\"6,3,0,3\" Click=\"SaveScenario_Click\"/>");
+            sb.AppendLine("                            <TextBlock Text=\"Scenario:\" VerticalAlignment=\"Center\" Margin=\"14,0,4,0\" Foreground=\"#8FB4D9\"/>");
+            sb.AppendLine("                            <TextBlock x:Name=\"ScenarioNameText\" Text=\"(unsaved scenario)\" VerticalAlignment=\"Center\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                        </StackPanel>");
+            sb.AppendLine("                    </DockPanel>");
+            sb.AppendLine();
+            // Left palette + middle step list.
+            sb.AppendLine("                    <Grid Grid.Row=\"1\">");
+            sb.AppendLine("                        <Grid.ColumnDefinitions>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"280\"/>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"340\"/>");
+            sb.AppendLine("                        </Grid.ColumnDefinitions>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"0\" Header=\"All Messages\">");
+            sb.AppendLine("                            <DockPanel>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag a message to the scenario (or double-click)\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <ListBox x:Name=\"AllMessagesList\" Background=\"#0B1220\" Foreground=\"#E6EDF3\" BorderBrush=\"#22303C\"");
+            sb.AppendLine("                                         PreviewMouseLeftButtonDown=\"AllMessagesList_PreviewMouseLeftButtonDown\"");
+            sb.AppendLine("                                         PreviewMouseMove=\"AllMessagesList_PreviewMouseMove\"");
+            sb.AppendLine("                                         MouseDoubleClick=\"AllMessagesList_MouseDoubleClick\"/>");
+            sb.AppendLine("                            </DockPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"1\" Header=\"Scenario Steps (each step runs by its own attributes)\">");
+            sb.AppendLine("                            <DockPanel>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag here the message and decide if periodic / one time. Click a step to edit its field values.\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <StackPanel DockPanel.Dock=\"Bottom\" Orientation=\"Horizontal\">");
+            sb.AppendLine("                                    <Button Content=\"Remove Step\" Background=\"#8B2E1F\" Click=\"RemoveStep_Click\"/>");
+            sb.AppendLine("                                    <Button Content=\"\u2191 Move Up\" Margin=\"6,3,0,3\" Click=\"MoveStepUp_Click\"/>");
+            sb.AppendLine("                                    <Button Content=\"\u2193 Move Down\" Margin=\"6,3,0,3\" Click=\"MoveStepDown_Click\"/>");
+            sb.AppendLine("                                    <Button Content=\"Clear Steps\" Background=\"#8B2E1F\" Margin=\"6,3,0,3\" Click=\"ClearSteps_Click\"/>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                                <DataGrid x:Name=\"ScenarioStepsList\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" AllowDrop=\"True\"");
+            sb.AppendLine("                                          Drop=\"ScenarioSteps_Drop\" DragOver=\"ScenarioSteps_DragOver\" Margin=\"0,0,0,6\"");
+            sb.AppendLine("                                          SelectionChanged=\"ScenarioStepsList_SelectionChanged\">");
+            sb.AppendLine("                                    <DataGrid.Columns>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"#\" Binding=\"{Binding Index}\" IsReadOnly=\"True\" Width=\"40\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Message\" Binding=\"{Binding Message}\" IsReadOnly=\"True\" Width=\"*\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Send Type\" Binding=\"{Binding SendType}\" IsReadOnly=\"True\" Width=\"90\"/>");
+            sb.AppendLine("                                        <DataGridCheckBoxColumn Header=\"Periodic\" Binding=\"{Binding Periodic, UpdateSourceTrigger=PropertyChanged}\" Width=\"70\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Time (ms)\" Binding=\"{Binding TimeMs, UpdateSourceTrigger=PropertyChanged}\" Width=\"90\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Interval (ms)\" Binding=\"{Binding PeriodicIntervalMs, UpdateSourceTrigger=PropertyChanged}\" Width=\"100\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Max (0=unlimited)\" Binding=\"{Binding MaxMessages, UpdateSourceTrigger=PropertyChanged}\" Width=\"120\"/>");
+            sb.AppendLine("                                    </DataGrid.Columns>");
+            sb.AppendLine("                                </DataGrid>");
+            sb.AppendLine("                            </DockPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"2\">");
+            sb.AppendLine("                            <GroupBox.Header>");
+            sb.AppendLine("                                <TextBlock x:Name=\"StepFieldsHeader\" Text=\"Step Fields (select a step)\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                            </GroupBox.Header>");
+            sb.AppendLine("                            <DockPanel>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Edit the values this step sends (saved with the scenario)\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <DataGrid x:Name=\"StepFieldsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\">");
+            sb.AppendLine("                                    <DataGrid.Columns>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value, UpdateSourceTrigger=PropertyChanged}\" Width=\"*\"/>");
+            sb.AppendLine("                                    </DataGrid.Columns>");
+            sb.AppendLine("                                </DataGrid>");
+            sb.AppendLine("                            </DockPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                    </Grid>");
+            sb.AppendLine();
+            sb.AppendLine("                    <GroupBox Grid.Row=\"2\" Header=\"Scenario Log\">");
+            sb.AppendLine("                        <DockPanel>");
+            sb.AppendLine("                            <Button DockPanel.Dock=\"Bottom\" Content=\"Clear Log\" Background=\"#8B2E1F\" Click=\"ClearScenarioLog_Click\"/>");
+            sb.AppendLine("                            <TextBox x:Name=\"ScenarioLogBox\" IsReadOnly=\"True\" FontFamily=\"Consolas\" FontSize=\"11\"");
+            sb.AppendLine("                                     VerticalScrollBarVisibility=\"Auto\" TextWrapping=\"Wrap\"/>");
+            sb.AppendLine("                        </DockPanel>");
+            sb.AppendLine("                    </GroupBox>");
+            sb.AppendLine("                </Grid>");
+            sb.AppendLine("            </TabItem>");
+        }
+
+        /// <summary>
+        /// The Record tab: opens a binary recording, lists the message types on the left and
+        /// shows every recorded message of the selected type in the middle table.
+        /// </summary>
+        private static void AppendRecordTabXaml(StringBuilder sb)
+        {
+            sb.AppendLine("            <TabItem Header=\"Record\">");
+            sb.AppendLine("                <Grid>");
+            sb.AppendLine("                    <Grid.RowDefinitions>");
+            sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                        <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                    </Grid.RowDefinitions>");
+            sb.AppendLine();
+            // Toolbar: open file + status of loaded recording.
+            sb.AppendLine("                    <DockPanel Grid.Row=\"0\" Margin=\"6,4\">");
+            sb.AppendLine("                        <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                            <Button Content=\"Open Recording (BIN)\" Click=\"OpenRecording_Click\"/>");
+            sb.AppendLine("                            <Button Content=\"\u2193 Export Type (CSV)\" Background=\"#1F8FA8\" Margin=\"6,3,0,3\" Click=\"ExportRecordType_Click\"");
+            sb.AppendLine("                                    ToolTip=\"Export all recorded messages of the selected type: one column per field, one row per message\"/>");
+            sb.AppendLine("                            <TextBlock Text=\"File:\" VerticalAlignment=\"Center\" Margin=\"14,0,4,0\" Foreground=\"#8FB4D9\"/>");
+            sb.AppendLine("                            <TextBlock x:Name=\"RecordFileText\" Text=\"(no file loaded)\" VerticalAlignment=\"Center\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                            <TextBlock x:Name=\"RecordSummaryText\" Text=\"\" VerticalAlignment=\"Center\" Margin=\"14,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                        </StackPanel>");
+            sb.AppendLine("                    </DockPanel>");
+            sb.AppendLine();
+            // Left: message types found in the file. Middle: all records of the selected type.
+            sb.AppendLine("                    <Grid Grid.Row=\"1\">");
+            sb.AppendLine("                        <Grid.ColumnDefinitions>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"280\"/>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"340\"/>");
+            sb.AppendLine("                        </Grid.ColumnDefinitions>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"0\" Header=\"Message Types\">");
+            sb.AppendLine("                            <DockPanel>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Click a type to show its recorded messages\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <ListBox x:Name=\"RecordTypesList\" Background=\"#0B1220\" Foreground=\"#E6EDF3\" BorderBrush=\"#22303C\"");
+            sb.AppendLine("                                         SelectionChanged=\"RecordTypesList_SelectionChanged\"/>");
+            sb.AppendLine("                            </DockPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"1\" Header=\"Recorded Messages\">");
+            sb.AppendLine("                            <DataGrid x:Name=\"RecordedMessagesGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\"");
+            sb.AppendLine("                                      SelectionChanged=\"RecordedMessagesGrid_SelectionChanged\">");
+            sb.AppendLine("                                <DataGrid.Columns>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"#\" Binding=\"{Binding Ordinal}\" Width=\"50\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Time\" Binding=\"{Binding Time}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Direction\" Binding=\"{Binding Direction}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Message\" Binding=\"{Binding Message}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Msg Id\" Binding=\"{Binding MessageId}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Bytes\" Binding=\"{Binding Bytes}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Data (HEX)\" Binding=\"{Binding Hex}\" Width=\"*\">");
+            sb.AppendLine("                                        <DataGridTextColumn.ElementStyle>");
+            sb.AppendLine("                                            <Style TargetType=\"TextBlock\">");
+            sb.AppendLine("                                                <Setter Property=\"FontFamily\" Value=\"Consolas\"/>");
+            sb.AppendLine("                                                <Setter Property=\"TextWrapping\" Value=\"Wrap\"/>");
+            sb.AppendLine("                                            </Style>");
+            sb.AppendLine("                                        </DataGridTextColumn.ElementStyle>");
+            sb.AppendLine("                                    </DataGridTextColumn>");
+            sb.AppendLine("                                </DataGrid.Columns>");
+            sb.AppendLine("                            </DataGrid>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"2\">");
+            sb.AppendLine("                            <GroupBox.Header>");
+            sb.AppendLine("                                <TextBlock x:Name=\"RecordFieldsHeader\" Text=\"Message Fields (select a row)\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                            </GroupBox.Header>");
+            sb.AppendLine("                            <DockPanel>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Click a recorded message to decode all its fields\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <DataGrid x:Name=\"RecordFieldsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                    <DataGrid.Columns>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" Width=\"60\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" Width=\"2*\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value}\" Width=\"*\"/>");
+            sb.AppendLine("                                    </DataGrid.Columns>");
+            sb.AppendLine("                                </DataGrid>");
+            sb.AppendLine("                            </DockPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                    </Grid>");
+            sb.AppendLine("                </Grid>");
+            sb.AppendLine("            </TabItem>");
+        }
+
+        /// <summary>
+        /// The Graph tab: a live message timeline with a TX lane (MBT ? NIRON) and an RX lane
+        /// (NIRON ? MBT), message filters, zoom / direction view options and a details table.
+        /// </summary>
+        private static void AppendGraphTabXaml(StringBuilder sb)
+        {
+            sb.AppendLine("            <TabItem Header=\"Graph\">");
+            sb.AppendLine("                <Grid>");
+            sb.AppendLine("                    <Grid.ColumnDefinitions>");
+            sb.AppendLine("                        <ColumnDefinition Width=\"250\"/>");
+            sb.AppendLine("                        <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                    </Grid.ColumnDefinitions>");
+            sb.AppendLine();
+            // Left: message filters + view options.
+            sb.AppendLine("                    <Grid Grid.Column=\"0\">");
+            sb.AppendLine("                        <Grid.RowDefinitions>");
+            sb.AppendLine("                            <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                            <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                        </Grid.RowDefinitions>");
+            sb.AppendLine("                        <GroupBox Grid.Row=\"0\" Header=\"Messages\">");
+            sb.AppendLine("                            <ScrollViewer VerticalScrollBarVisibility=\"Auto\">");
+            sb.AppendLine("                                <StackPanel x:Name=\"GraphFilterPanel\"/>");
+            sb.AppendLine("                            </ScrollViewer>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <GroupBox Grid.Row=\"1\" Header=\"View Options\">");
+            sb.AppendLine("                            <StackPanel>");
+            sb.AppendLine("                                <TextBlock Text=\"Zoom\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,2\"/>");
+            sb.AppendLine("                                <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                                    <Button Content=\"\u2212\" Width=\"32\" Click=\"GraphZoomOut_Click\"/>");
+            sb.AppendLine("                                    <TextBlock x:Name=\"GraphZoomText\" Text=\"100%\" Width=\"56\" TextAlignment=\"Center\" VerticalAlignment=\"Center\"/>");
+            sb.AppendLine("                                    <Button Content=\"+\" Width=\"32\" Click=\"GraphZoomIn_Click\"/>");
+            sb.AppendLine("                                    <Button Content=\"Fit\" Width=\"44\" Margin=\"6,3,0,3\" Click=\"GraphFit_Click\"/>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                                <Button x:Name=\"GraphPauseButton\" Content=\"\u23F8 Pause\" Background=\"#B08800\" Margin=\"0,8,0,0\" Click=\"GraphPause_Click\"");
+            sb.AppendLine("                                        ToolTip=\"Freeze the timeline display; events keep accumulating\"/>");
+            sb.AppendLine("                                <TextBlock Text=\"Direction Filter\" Foreground=\"#7A8CA0\" Margin=\"2,8,0,2\"/>");
+            sb.AppendLine("                                <ComboBox x:Name=\"GraphDirectionCombo\" SelectedIndex=\"0\" SelectionChanged=\"GraphOptions_Changed\">");
+            sb.AppendLine("                                    <ComboBoxItem Content=\"All\"/>");
+            sb.AppendLine("                                    <ComboBoxItem Content=\"MBT \u2192 NIRON\"/>");
+            sb.AppendLine("                                    <ComboBoxItem Content=\"NIRON \u2192 MBT\"/>");
+            sb.AppendLine("                                </ComboBox>");
+            sb.AppendLine("                                <Button Content=\"Clear Timeline\" Background=\"#8B2E1F\" Margin=\"0,8,0,0\" Click=\"ClearTimeline_Click\"/>");
+            sb.AppendLine("                            </StackPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                    </Grid>");
+            sb.AppendLine();
+            // Right: timeline canvas + details table.
+            sb.AppendLine("                    <Grid Grid.Column=\"1\">");
+            sb.AppendLine("                        <Grid.RowDefinitions>");
+            sb.AppendLine("                            <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                            <RowDefinition Height=\"220\"/>");
+            sb.AppendLine("                        </Grid.RowDefinitions>");
+            sb.AppendLine("                        <GroupBox Grid.Row=\"0\">");
+            sb.AppendLine("                            <GroupBox.Header>");
+            sb.AppendLine("                                <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                                    <TextBlock Text=\"Message Timeline\" FontWeight=\"Bold\" Foreground=\"#8FB4D9\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"\u2192 MBT \u2192 NIRON (my side)\" Foreground=\"#238636\" Margin=\"20,0,0,0\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"\u2192 NIRON \u2192 MBT\" Foreground=\"#FFFFFF\" Margin=\"14,0,0,0\"/>");
+            sb.AppendLine("                                    <Button Content=\"\u2212\" Width=\"26\" Padding=\"0\" Margin=\"20,0,0,0\" Click=\"GraphZoomOut_Click\" ToolTip=\"Zoom out\"/>");
+            sb.AppendLine("                                    <Button Content=\"+\" Width=\"26\" Padding=\"0\" Margin=\"4,0,0,0\" Click=\"GraphZoomIn_Click\" ToolTip=\"Zoom in\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Ctrl+Wheel zooms\" Foreground=\"#7A8CA0\" Margin=\"8,0,0,0\"/>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                            </GroupBox.Header>");
+            sb.AppendLine("                            <ScrollViewer x:Name=\"GraphScroll\" HorizontalScrollBarVisibility=\"Auto\" VerticalScrollBarVisibility=\"Disabled\"");
+            sb.AppendLine("                                          PreviewMouseWheel=\"GraphScroll_PreviewMouseWheel\">");
+            sb.AppendLine("                                <Canvas x:Name=\"TimelineCanvas\" Background=\"#0B1220\" Height=\"380\" MinWidth=\"900\"/>");
+            sb.AppendLine("                            </ScrollViewer>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <Grid Grid.Row=\"1\">");
+            sb.AppendLine("                            <Grid.ColumnDefinitions>");
+            sb.AppendLine("                                <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                                <ColumnDefinition Width=\"340\"/>");
+            sb.AppendLine("                            </Grid.ColumnDefinitions>");
+            sb.AppendLine("                            <GroupBox Grid.Column=\"0\" Header=\"Details\">");
+            sb.AppendLine("                                <DataGrid x:Name=\"TimelineDetailsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\"");
+            sb.AppendLine("                                          SelectionChanged=\"TimelineDetailsGrid_SelectionChanged\">");
+            sb.AppendLine("                                    <DataGrid.Columns>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Time\" Binding=\"{Binding Time}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Direction\" Binding=\"{Binding Direction}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Message\" Binding=\"{Binding Message}\" Width=\"*\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Status\" Binding=\"{Binding Status}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Details\" Binding=\"{Binding Details}\" Width=\"*\"/>");
+            sb.AppendLine("                                    </DataGrid.Columns>");
+            sb.AppendLine("                                </DataGrid>");
+            sb.AppendLine("                            </GroupBox>");
+            sb.AppendLine("                            <GroupBox Grid.Column=\"1\">");
+            sb.AppendLine("                                <GroupBox.Header>");
+            sb.AppendLine("                                    <TextBlock x:Name=\"GraphFieldsHeader\" Text=\"Message Fields (click a point or row)\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                                </GroupBox.Header>");
+            sb.AppendLine("                                <DataGrid x:Name=\"GraphFieldsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                    <DataGrid.Columns>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" Width=\"60\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" Width=\"2*\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value}\" Width=\"*\"/>");
+            sb.AppendLine("                                    </DataGrid.Columns>");
+            sb.AppendLine("                                </DataGrid>");
+            sb.AppendLine("                            </GroupBox>");
+            sb.AppendLine("                        </Grid>");
+            sb.AppendLine("                    </Grid>");
+            sb.AppendLine("                </Grid>");
+            sb.AppendLine("            </TabItem>");
+        }
+
+        /// <summary>
+        /// The Record Graph tab: opens a recording .bin file and displays it on the same
+        /// two-lane timeline as the Graph tab (filters, zoom, details and field decoding).
+        /// </summary>
+        private static void AppendRecordGraphTabXaml(StringBuilder sb)
+        {
+            sb.AppendLine("            <TabItem Header=\"Record Graph\">");
+            sb.AppendLine("                <Grid>");
+            sb.AppendLine("                    <Grid.RowDefinitions>");
+            sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                        <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                    </Grid.RowDefinitions>");
+            sb.AppendLine();
+            // Toolbar: open recording + loaded file info.
+            sb.AppendLine("                    <DockPanel Grid.Row=\"0\" Margin=\"6,4\">");
+            sb.AppendLine("                        <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                            <Button Content=\"Open Recording (BIN)\" Click=\"OpenRecordGraph_Click\"/>");
+            sb.AppendLine("                            <TextBlock Text=\"File:\" VerticalAlignment=\"Center\" Margin=\"14,0,4,0\" Foreground=\"#8FB4D9\"/>");
+            sb.AppendLine("                            <TextBlock x:Name=\"RecordGraphFileText\" Text=\"(no file loaded)\" VerticalAlignment=\"Center\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                            <TextBlock x:Name=\"RecordGraphSummaryText\" Text=\"\" VerticalAlignment=\"Center\" Margin=\"14,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                        </StackPanel>");
+            sb.AppendLine("                    </DockPanel>");
+            sb.AppendLine();
+            sb.AppendLine("                    <Grid Grid.Row=\"1\">");
+            sb.AppendLine("                        <Grid.ColumnDefinitions>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"250\"/>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                        </Grid.ColumnDefinitions>");
+            sb.AppendLine();
+            // Left: message filters + view options.
+            sb.AppendLine("                        <Grid Grid.Column=\"0\">");
+            sb.AppendLine("                            <Grid.RowDefinitions>");
+            sb.AppendLine("                                <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                                <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                            </Grid.RowDefinitions>");
+            sb.AppendLine("                            <GroupBox Grid.Row=\"0\" Header=\"Messages\">");
+            sb.AppendLine("                                <ScrollViewer VerticalScrollBarVisibility=\"Auto\">");
+            sb.AppendLine("                                    <StackPanel x:Name=\"RecordGraphFilterPanel\"/>");
+            sb.AppendLine("                                </ScrollViewer>");
+            sb.AppendLine("                            </GroupBox>");
+            sb.AppendLine("                            <GroupBox Grid.Row=\"1\" Header=\"View Options\">");
+            sb.AppendLine("                                <StackPanel>");
+            sb.AppendLine("                                    <TextBlock Text=\"Zoom\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,2\"/>");
+            sb.AppendLine("                                    <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                                        <Button Content=\"\u2212\" Width=\"32\" Click=\"RecordGraphZoomOut_Click\"/>");
+            sb.AppendLine("                                        <TextBlock x:Name=\"RecordGraphZoomText\" Text=\"100%\" Width=\"56\" TextAlignment=\"Center\" VerticalAlignment=\"Center\"/>");
+            sb.AppendLine("                                        <Button Content=\"+\" Width=\"32\" Click=\"RecordGraphZoomIn_Click\"/>");
+            sb.AppendLine("                                        <Button Content=\"Fit\" Width=\"44\" Margin=\"6,3,0,3\" Click=\"RecordGraphFit_Click\"/>");
+            sb.AppendLine("                                    </StackPanel>");
+            sb.AppendLine("                                    <TextBlock Text=\"Direction Filter\" Foreground=\"#7A8CA0\" Margin=\"2,8,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"RecordGraphDirectionCombo\" SelectedIndex=\"0\" SelectionChanged=\"RecordGraphOptions_Changed\">");
+            sb.AppendLine("                                        <ComboBoxItem Content=\"All\"/>");
+            sb.AppendLine("                                        <ComboBoxItem Content=\"MBT \u2192 NIRON\"/>");
+            sb.AppendLine("                                        <ComboBoxItem Content=\"NIRON \u2192 MBT\"/>");
+            sb.AppendLine("                                    </ComboBox>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                            </GroupBox>");
+            sb.AppendLine("                        </Grid>");
+            sb.AppendLine();
+            // Right: timeline canvas + details table + fields panel.
+            sb.AppendLine("                        <Grid Grid.Column=\"1\">");
+            sb.AppendLine("                            <Grid.RowDefinitions>");
+            sb.AppendLine("                                <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                                <RowDefinition Height=\"220\"/>");
+            sb.AppendLine("                            </Grid.RowDefinitions>");
+            sb.AppendLine("                            <GroupBox Grid.Row=\"0\">");
+            sb.AppendLine("                                <GroupBox.Header>");
+            sb.AppendLine("                                    <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                                        <TextBlock Text=\"Recorded Message Timeline\" FontWeight=\"Bold\" Foreground=\"#8FB4D9\"/>");
+            sb.AppendLine("                                        <TextBlock Text=\"\u2192 MBT \u2192 NIRON (my side)\" Foreground=\"#238636\" Margin=\"20,0,0,0\"/>");
+            sb.AppendLine("                                        <TextBlock Text=\"\u2192 NIRON \u2192 MBT\" Foreground=\"#FFFFFF\" Margin=\"14,0,0,0\"/>");
+            sb.AppendLine("                                        <Button Content=\"\u2212\" Width=\"26\" Padding=\"0\" Margin=\"20,0,0,0\" Click=\"RecordGraphZoomOut_Click\" ToolTip=\"Zoom out\"/>");
+            sb.AppendLine("                                        <Button Content=\"+\" Width=\"26\" Padding=\"0\" Margin=\"4,0,0,0\" Click=\"RecordGraphZoomIn_Click\" ToolTip=\"Zoom in\"/>");
+            sb.AppendLine("                                        <TextBlock Text=\"Ctrl+Wheel zooms\" Foreground=\"#7A8CA0\" Margin=\"8,0,0,0\"/>");
+            sb.AppendLine("                                    </StackPanel>");
+            sb.AppendLine("                                </GroupBox.Header>");
+            sb.AppendLine("                                <ScrollViewer x:Name=\"RecordGraphScroll\" HorizontalScrollBarVisibility=\"Auto\" VerticalScrollBarVisibility=\"Disabled\"");
+            sb.AppendLine("                                              PreviewMouseWheel=\"RecordGraphScroll_PreviewMouseWheel\">");
+            sb.AppendLine("                                    <Canvas x:Name=\"RecordGraphCanvas\" Background=\"#0B1220\" Height=\"380\" MinWidth=\"900\"/>");
+            sb.AppendLine("                                </ScrollViewer>");
+            sb.AppendLine("                            </GroupBox>");
+            sb.AppendLine("                            <Grid Grid.Row=\"1\">");
+            sb.AppendLine("                                <Grid.ColumnDefinitions>");
+            sb.AppendLine("                                    <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                                    <ColumnDefinition Width=\"340\"/>");
+            sb.AppendLine("                                </Grid.ColumnDefinitions>");
+            sb.AppendLine("                                <GroupBox Grid.Column=\"0\" Header=\"Details\">");
+            sb.AppendLine("                                    <DataGrid x:Name=\"RecordGraphDetailsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\"");
+            sb.AppendLine("                                              SelectionChanged=\"RecordGraphDetailsGrid_SelectionChanged\">");
+            sb.AppendLine("                                        <DataGrid.Columns>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Time\" Binding=\"{Binding Time}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Direction\" Binding=\"{Binding Direction}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Message\" Binding=\"{Binding Message}\" Width=\"*\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Status\" Binding=\"{Binding Status}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Details\" Binding=\"{Binding Details}\" Width=\"*\"/>");
+            sb.AppendLine("                                        </DataGrid.Columns>");
+            sb.AppendLine("                                    </DataGrid>");
+            sb.AppendLine("                                </GroupBox>");
+            sb.AppendLine("                                <GroupBox Grid.Column=\"1\">");
+            sb.AppendLine("                                    <GroupBox.Header>");
+            sb.AppendLine("                                        <TextBlock x:Name=\"RecordGraphFieldsHeader\" Text=\"Message Fields (click a point or row)\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                                    </GroupBox.Header>");
+            sb.AppendLine("                                    <DataGrid x:Name=\"RecordGraphFieldsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                        <DataGrid.Columns>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" Width=\"60\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" Width=\"2*\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value}\" Width=\"*\"/>");
+            sb.AppendLine("                                        </DataGrid.Columns>");
+            sb.AppendLine("                                    </DataGrid>");
+            sb.AppendLine("                                </GroupBox>");
+            sb.AppendLine("                            </Grid>");
+            sb.AppendLine("                        </Grid>");
+            sb.AppendLine("                    </Grid>");
+            sb.AppendLine("                </Grid>");
+            sb.AppendLine("            </TabItem>");
+        }
+
+        /// <summary>
+        /// The Statistics tab: one row per message with totals, current rates (messages/sec,
+        /// bytes/sec), sizes, last activity timestamps and error counters, refreshed every second.
+        /// </summary>
+        private static void AppendStatisticsTabXaml(StringBuilder sb)
+        {
+            sb.AppendLine("            <TabItem Header=\"Statistics\">");
+            sb.AppendLine("                <Grid>");
+            sb.AppendLine("                    <Grid.RowDefinitions>");
+            sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                        <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                    </Grid.RowDefinitions>");
+            sb.AppendLine();
+            sb.AppendLine("                    <DockPanel Grid.Row=\"0\" Margin=\"6,4\">");
+            sb.AppendLine("                        <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                            <Button Content=\"Reset Statistics\" Background=\"#8B2E1F\" Click=\"ResetStats_Click\"/>");
+            sb.AppendLine("                            <TextBlock x:Name=\"StatsSummaryText\" Text=\"(no traffic yet)\" VerticalAlignment=\"Center\" Margin=\"14,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                        </StackPanel>");
+            sb.AppendLine("                    </DockPanel>");
+            sb.AppendLine();
+            sb.AppendLine("                    <Grid Grid.Row=\"1\">");
+            sb.AppendLine("                        <Grid.ColumnDefinitions>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"420\"/>");
+            sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                        </Grid.ColumnDefinitions>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"0\" Header=\"Global Statistics\">");
+            sb.AppendLine("                            <DataGrid x:Name=\"GlobalStatsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                <DataGrid.Columns>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Statistic\" Binding=\"{Binding Statistic}\" Width=\"3*\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value}\" Width=\"2*\"/>");
+            sb.AppendLine("                                </DataGrid.Columns>");
+            sb.AppendLine("                            </DataGrid>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <GroupBox Grid.Column=\"1\" Header=\"Per-Message Statistics (refreshed every second)\">");
+            sb.AppendLine("                            <DataGrid x:Name=\"StatsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                <DataGrid.Columns>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Message Name\" Binding=\"{Binding Message}\" Width=\"2*\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Received\" Binding=\"{Binding Received}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Sent\" Binding=\"{Binding Sent}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Msg/sec\" Binding=\"{Binding MsgPerSec}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Bytes/sec\" Binding=\"{Binding BytesPerSec}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Total Bytes\" Binding=\"{Binding TotalBytes}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Avg Size\" Binding=\"{Binding AvgSize}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Min Size\" Binding=\"{Binding MinSize}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Max Size\" Binding=\"{Binding MaxSize}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Last RX Time\" Binding=\"{Binding LastReceived}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Last TX Time\" Binding=\"{Binding LastSent}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Since Last (s)\" Binding=\"{Binding SinceLast}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Errors\" Binding=\"{Binding Errors}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Dropped\" Binding=\"{Binding Dropped}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                </DataGrid.Columns>");
+            sb.AppendLine("                            </DataGrid>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                    </Grid>");
+            sb.AppendLine("                </Grid>");
+            sb.AppendLine("            </TabItem>");
         }
 
         private string BuildMainWindowXamlCs()
@@ -399,6 +935,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("using System.Text.Json;");
             sb.AppendLine("using System.Threading;");
             sb.AppendLine("using System.Windows;");
+            sb.AppendLine("using System.Windows.Input;");
             sb.AppendLine("using System.Windows.Threading;");
             sb.AppendLine("using WrapperFromCToSharp;");
             sb.AppendLine();
@@ -410,7 +947,43 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        private readonly ObservableCollection<HistoryRow> _history = new();");
             sb.AppendLine("        private readonly ObservableCollection<MonitorRow> _monitor = new();");
             sb.AppendLine("        private readonly ObservableCollection<ReceivedField> _receivedFields = new();");
-            sb.AppendLine("        private readonly Dictionary<string, DispatcherTimer> _periodicTimers = new();");
+            sb.AppendLine("        // Periodic sends run on PrecisionTimer threads (1 ms resolution, drift-free),");
+            sb.AppendLine("        // never on the UI thread, so a 10 ms cadence stays accurate while the UI works.");
+            sb.AppendLine("        private readonly Dictionary<string, PrecisionTimer> _periodicTimers = new();");
+            sb.AppendLine("        private readonly ObservableCollection<ScenarioStepRow> _scenarioSteps = new();");
+            sb.AppendLine("        private readonly List<DispatcherTimer> _scenarioTimers = new();");
+            sb.AppendLine("        private readonly List<PrecisionTimer> _scenarioPrecisionTimers = new();");
+            sb.AppendLine("        // The native wrapper writes into static physical structures; serialize access across threads.");
+            sb.AppendLine("        private static readonly object _nativeLock = new();");
+            sb.AppendLine("        private readonly ObservableCollection<FieldRow> _stepFields = new();");
+            sb.AppendLine("        private ScenarioStepRow? _editingStep;");
+            sb.AppendLine("        private string? _scenarioFolder;");
+            sb.AppendLine("        private volatile bool _scenarioRunning;");
+            sb.AppendLine("        private Point _dragStartPoint;");
+            sb.AppendLine("        private readonly MessageRecorder _recorder = new();");
+            sb.AppendLine("        private List<RecordedMessage> _loadedRecords = new();");
+            sb.AppendLine("        private readonly List<TimelineEvent> _timelineEvents = new();");
+            sb.AppendLine("        private readonly Dictionary<string, int> _messageCounts = new();");
+            sb.AppendLine("        private double _graphZoom = 1.0;");
+            sb.AppendLine("        private bool _graphPaused;");
+            sb.AppendLine("        // Set when traffic arrives; the graph is redrawn by _graphRefreshTimer instead of on every packet.");
+            sb.AppendLine("        private bool _timelineDirty;");
+            sb.AppendLine("        // Coalesces bursts of traffic into a few UI repaints per second to keep the UI responsive.");
+            sb.AppendLine("        private readonly DispatcherTimer _graphRefreshTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };");
+            sb.AppendLine("        private readonly Dictionary<string, MessageStat> _messageStats = new();");
+            sb.AppendLine("        private DateTime _lastStatsTick = DateTime.Now;");
+            sb.AppendLine("        // Statistics refresh is intentionally separate from message receive/send cadence.");
+            sb.AppendLine("        private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };");
+            sb.AppendLine("        private readonly DateTime _simStartTime = DateTime.Now;");
+            sb.AppendLine("        private double _peakMsgRate;");
+            sb.AppendLine("        private double _peakByteRate;");
+            sb.AppendLine("        private long _totalProcessingTicks;");
+            sb.AppendLine("        private long _processedMessages;");
+            sb.AppendLine("        private long _timeoutCount;");
+            sb.AppendLine("        private long _retransmissionCount;");
+            sb.AppendLine("        private TimeSpan _lastCpuTime = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;");
+            sb.AppendLine("        private readonly List<TimelineEvent> _recordGraphEvents = new();");
+            sb.AppendLine("        private double _recordGraphZoom = 1.0;");
             sb.AppendLine("        private ITransport? _transport;");
             sb.AppendLine("        private int _sequence;");
             sb.AppendLine();
@@ -421,13 +994,42 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            HistoryGrid.ItemsSource = _history;");
             sb.AppendLine("            MonitorGrid.ItemsSource = _monitor;");
             sb.AppendLine("            ReceivedFieldsGrid.ItemsSource = _receivedFields;");
+            sb.AppendLine("            ScenarioStepsList.ItemsSource = _scenarioSteps;");
+            sb.AppendLine("            StepFieldsGrid.ItemsSource = _stepFields;");
             sb.AppendLine("            foreach (var m in MessageCatalog.Messages)");
+            sb.AppendLine("            {");
             sb.AppendLine("                MessageList.Items.Add(m.Name);");
+            sb.AppendLine("                AllMessagesList.Items.Add(m.Name);");
+            sb.AppendLine("                AddGraphFilter(m.Name);");
+            sb.AppendLine("            }");
             sb.AppendLine("            if (MessageList.Items.Count > 0)");
             sb.AppendLine("                MessageList.SelectedIndex = 0;");
             sb.AppendLine("            foreach (var port in System.IO.Ports.SerialPort.GetPortNames())");
             sb.AppendLine("                ComPortBox.Items.Add(port);");
             sb.AppendLine("            if (ComPortBox.Items.Count > 0) ComPortBox.SelectedIndex = 0;");
+            sb.AppendLine("            // Repaint the timeline when the Graph tab becomes visible.");
+            sb.AppendLine("            TimelineCanvas.IsVisibleChanged += (_, _) => { if (TimelineCanvas.IsVisible) RedrawTimeline(); };");
+            sb.AppendLine("            RecordGraphCanvas.IsVisibleChanged += (_, _) => { if (RecordGraphCanvas.IsVisible) RedrawRecordTimeline(); };");
+            sb.AppendLine("            // Coalesced repaint: heavy traffic only marks the timeline dirty and this timer");
+            sb.AppendLine("            // repaints at most ~3 times per second, so bursts of messages cannot freeze the UI.");
+            sb.AppendLine("            _graphRefreshTimer.Tick += (_, _) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                if (_timelineDirty && TimelineCanvas.IsVisible && !_graphPaused) RedrawTimeline();");
+            sb.AppendLine("            };");
+            sb.AppendLine("            _graphRefreshTimer.Start();");
+            sb.AppendLine("            // Per-message statistics (rates recomputed every second).");
+            sb.AppendLine("            _statsTimer.Tick += (_, _) => UpdateStatistics();");
+            sb.AppendLine("            _statsTimer.Start();");
+            sb.AppendLine("            // 1 ms Windows timer resolution so 10 ms periodic sends fire on time.");
+            sb.AppendLine("            HighResClock.Enable();");
+            sb.AppendLine("            Closed += (_, _) =>");
+            sb.AppendLine("            {");
+            sb.AppendLine("                foreach (var timer in _periodicTimers.Values) timer.Dispose();");
+            sb.AppendLine("                _periodicTimers.Clear();");
+            sb.AppendLine("                StopScenarioTimers();");
+            sb.AppendLine("                StopTransport();");
+            sb.AppendLine("                HighResClock.Disable();");
+            sb.AppendLine("            };");
             sb.AppendLine("            Log(\"Application ready. Simulating MBT side.\");");
             sb.AppendLine("        }");
             sb.AppendLine();
@@ -447,23 +1049,32 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        // ---- Buffer building via the native wrapper ----");
-            sb.AppendLine("        private byte[] BuildBuffer(MessageInfo info, IReadOnlyList<FieldRow> fields)");
+            sb.AppendLine("        private byte[] BuildBuffer(MessageInfo info, IReadOnlyList<FieldRow> fields) =>");
+            sb.AppendLine("            BuildBufferCore(info, fields, _sequence, AutoSequenceCheck.IsChecked == true,");
+            sb.AppendLine("                AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Thread-safe buffer build (no UI access) usable from PrecisionTimer threads.");
+            sb.AppendLine("        /// Native convert calls are serialized because the wrapper uses static structures.</summary>");
+            sb.AppendLine("        private static byte[] BuildBufferCore(MessageInfo info, IReadOnlyList<FieldRow> fields, int seq, bool autoSeq, bool autoTs, bool autoCrc)");
             sb.AppendLine("        {");
             sb.AppendLine("            var buffer = new byte[Math.Max(info.Length, 1)];");
             sb.AppendLine("            IntPtr phys = info.GetPhysical();");
             sb.AppendLine();
-            sb.AppendLine("            if (AutoSequenceCheck.IsChecked == true) SetFieldBySuffix(fields, \"SeqNum\", _sequence);");
-            sb.AppendLine("            if (AutoTimestampCheck.IsChecked == true) SetFieldBySuffix(fields, \"timestamp\", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0);");
+            sb.AppendLine("            if (autoSeq) SetFieldBySuffix(fields, \"SeqNum\", seq);");
+            sb.AppendLine("            if (autoTs) SetFieldBySuffix(fields, \"timestamp\", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() / 1000.0);");
             sb.AppendLine();
             sb.AppendLine("            // Establish the base layout (arrays, fixed structure) through the native");
             sb.AppendLine("            // convert function, then overlay the edited scalar values onto the buffer.");
-            sb.AppendLine("            if (phys != IntPtr.Zero)");
-            sb.AppendLine("                info.ConvertToInterface(buffer, phys);");
+            sb.AppendLine("            lock (_nativeLock)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                if (phys != IntPtr.Zero)");
+            sb.AppendLine("                    info.ConvertToInterface(buffer, phys);");
+            sb.AppendLine("            }");
             sb.AppendLine();
             sb.AppendLine("            foreach (var row in fields)");
             sb.AppendLine("                row.WriteToBuffer(buffer);");
             sb.AppendLine();
-            sb.AppendLine("            if (AutoCrcCheck.IsChecked == true)");
+            sb.AppendLine("            if (autoCrc)");
             sb.AppendLine("                ApplyCrc(info, buffer);");
             sb.AppendLine();
             sb.AppendLine("            return buffer;");
@@ -496,26 +1107,53 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            SendMessage(info, _fields.ToList(), periodic);");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        /// <summary>Builds and sends a specific message using its own field snapshot, so a");
-            sb.AppendLine("        /// periodic send keeps running independently of the current UI selection.</summary>");
+            sb.AppendLine("        /// <summary>UI-thread send used by buttons and scenario starts; snapshots the auto");
+            sb.AppendLine("        /// flags then delegates to the thread-safe core.</summary>");
             sb.AppendLine("        private void SendMessage(MessageInfo info, IReadOnlyList<FieldRow> fields, bool periodic)");
             sb.AppendLine("        {");
             sb.AppendLine("            if (_transport is null) { Log(\"Transport is not started.\"); return; }");
+            sb.AppendLine("            SendMessageCore(info, fields, periodic, AutoSequenceCheck.IsChecked == true,");
+            sb.AppendLine("                AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Builds and sends on the calling thread (safe for PrecisionTimer threads).");
+            sb.AppendLine("        /// UI bookkeeping is queued with InvokeAsync so it never delays the 10 ms cadence.</summary>");
+            sb.AppendLine("        private void SendMessageCore(MessageInfo info, IReadOnlyList<FieldRow> fields, bool periodic, bool autoSeq, bool autoTs, bool autoCrc)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            var transport = _transport;");
+            sb.AppendLine("            if (transport is null) return;");
+            sb.AppendLine("            var sw = System.Diagnostics.Stopwatch.StartNew();");
             sb.AppendLine("            try");
             sb.AppendLine("            {");
-            sb.AppendLine("                var buffer = BuildBuffer(info, fields);");
-            sb.AppendLine("                var seq = _sequence++;");
-            sb.AppendLine("                _transport.Send(buffer);");
-            sb.AppendLine("                _history.Insert(0, new HistoryRow");
+            sb.AppendLine("                var seq = Interlocked.Increment(ref _sequence) - 1;");
+            sb.AppendLine("                var buffer = BuildBufferCore(info, fields, seq, autoSeq, autoTs, autoCrc);");
+            sb.AppendLine("                transport.Send(buffer);");
+            sb.AppendLine("                _recorder.Record(true, info.MessageId, buffer);");
+            sb.AppendLine("                sw.Stop();");
+            sb.AppendLine("                Interlocked.Add(ref _totalProcessingTicks, sw.ElapsedTicks);");
+            sb.AppendLine("                Interlocked.Increment(ref _processedMessages);");
+            sb.AppendLine("                var time = DateTime.Now;");
+            sb.AppendLine("                Dispatcher.InvokeAsync(() =>");
             sb.AppendLine("                {");
-            sb.AppendLine("                    Time = DateTime.Now.ToString(\"HH:mm:ss.fff\"),");
-            sb.AppendLine("                    Direction = \"TX\", Message = info.Name, Seq = seq,");
-            sb.AppendLine("                    Bytes = buffer.Length, Periodic = periodic ? \"Yes\" : \"No\"");
+            sb.AppendLine("                    RecordTimelineEvent(true, info.Name, \"SENT\", periodic ? \"Periodic\" : \"One time\", buffer);");
+            sb.AppendLine("                    UpdateStat(info.Name, buffer.Length, outgoing: true);");
+            sb.AppendLine("                    if (periodic) _retransmissionCount++;");
+            sb.AppendLine("                    _history.Insert(0, new HistoryRow");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        Time = time.ToString(\"HH:mm:ss.fff\"),");
+            sb.AppendLine("                        Direction = \"TX\", Message = info.Name, Seq = seq,");
+            sb.AppendLine("                        Bytes = buffer.Length, Periodic = periodic ? \"Yes\" : \"No\"");
+            sb.AppendLine("                    });");
+            sb.AppendLine("                    if (_history.Count > 500) _history.RemoveAt(_history.Count - 1);");
+            sb.AppendLine("                    // Per-send log and HEX refresh are skipped for periodic sends so fast rates stay smooth.");
+            sb.AppendLine("                    if (!periodic)");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        Log($\"{info.Name}: sent {buffer.Length} bytes (seq {seq}).\");");
+            sb.AppendLine("                        if (ReferenceEquals(info, Current)) RefreshHex();");
+            sb.AppendLine("                    }");
             sb.AppendLine("                });");
-            sb.AppendLine("                Log($\"{info.Name}: sent {buffer.Length} bytes (seq {seq}).\");");
-            sb.AppendLine("                if (ReferenceEquals(info, Current)) RefreshHex();");
             sb.AppendLine("            }");
-            sb.AppendLine("            catch (Exception ex) { Log(\"Send error: \" + ex.Message); }");
+            sb.AppendLine("            catch (Exception ex) { Dispatcher.InvokeAsync(() => Log(\"Send error: \" + ex.Message)); }");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        private void ClearHistory_Click(object sender, RoutedEventArgs e)");
@@ -524,29 +1162,32 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            Log(\"Send history cleared.\");");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        // ---- Periodic ----");
+            sb.AppendLine("        // ---- Periodic (PrecisionTimer threads: accurate down to a few ms, e.g. 10 ms) ----");
             sb.AppendLine("        private void StartPeriodic_Click(object sender, RoutedEventArgs e)");
             sb.AppendLine("        {");
             sb.AppendLine("            var info = Current;");
             sb.AppendLine("            if (info is null) return;");
             sb.AppendLine("            StopPeriodic(info.Name);");
-            sb.AppendLine("            var interval = int.TryParse(IntervalBox.Text, out var ms) ? Math.Max(1, ms) : 1000;");
+            sb.AppendLine("            var interval = double.TryParse(IntervalBox.Text, out var ms) ? Math.Max(1, ms) : 1000;");
             sb.AppendLine("            var howMany = int.TryParse(HowManyBox.Text, out var n) ? n : 0;");
             sb.AppendLine();
-            sb.AppendLine("            // Snapshot this message's fields so the periodic timer keeps sending it");
-            sb.AppendLine("            // independently, even while you select and send other messages in parallel.");
+            sb.AppendLine("            // Snapshot the fields and auto flags so the timer thread never touches the UI;");
+            sb.AppendLine("            // the message keeps sending independently of the current selection.");
             sb.AppendLine("            var snapshot = SnapshotFields(info);");
+            sb.AppendLine("            bool autoSeq = AutoSequenceCheck.IsChecked == true;");
+            sb.AppendLine("            bool autoTs = AutoTimestampCheck.IsChecked == true;");
+            sb.AppendLine("            bool autoCrc = AutoCrcCheck.IsChecked == true;");
             sb.AppendLine("            var sent = 0;");
-            sb.AppendLine("            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(interval) };");
-            sb.AppendLine("            timer.Tick += (_, _) =>");
+            sb.AppendLine("            var timer = new PrecisionTimer(interval, () =>");
             sb.AppendLine("            {");
-            sb.AppendLine("                SendMessage(info, snapshot, true);");
-            sb.AppendLine("                sent++;");
-            sb.AppendLine("                if (howMany > 0 && sent >= howMany) StopPeriodic(info.Name);");
-            sb.AppendLine("            };");
+            sb.AppendLine("                var i = Interlocked.Increment(ref sent);");
+            sb.AppendLine("                if (howMany > 0 && i > howMany) return; // count reached, disposal is on its way");
+            sb.AppendLine("                SendMessageCore(info, snapshot, true, autoSeq, autoTs, autoCrc);");
+            sb.AppendLine("                if (howMany > 0 && i == howMany)");
+            sb.AppendLine("                    Dispatcher.InvokeAsync(() => StopPeriodic(info.Name));");
+            sb.AppendLine("            });");
             sb.AppendLine("            _periodicTimers[info.Name] = timer;");
-            sb.AppendLine("            timer.Start();");
-            sb.AppendLine("            Log($\"{info.Name}: periodic started ({interval} ms, {(howMany == 0 ? \"unlimited\" : howMany.ToString())}).\");");
+            sb.AppendLine("            Log($\"{info.Name}: precision periodic started ({interval} ms, {(howMany == 0 ? \"unlimited\" : howMany.ToString())}).\");");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        /// <summary>Creates an independent copy of the message's current field values.</summary>");
@@ -577,7 +1218,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        {");
             sb.AppendLine("            if (_periodicTimers.TryGetValue(name, out var timer))");
             sb.AppendLine("            {");
-            sb.AppendLine("                timer.Stop();");
+            sb.AppendLine("                timer.Dispose(); // stops the dedicated timer thread");
             sb.AppendLine("                _periodicTimers.Remove(name);");
             sb.AppendLine("                Log($\"{name}: periodic stopped.\");");
             sb.AppendLine("            }");
@@ -635,8 +1276,14 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            {");
             sb.AppendLine("                StopTransport();");
             sb.AppendLine("                _transport = CreateTransport();");
-            sb.AppendLine("                _transport.DataReceived += (data, from) => Dispatcher.Invoke(() => OnReceived(data, from));");
-            sb.AppendLine("                _transport.StatusChanged += message => Dispatcher.Invoke(() => Log(message));");
+            sb.AppendLine("                // Never block the transport thread on the UI: record on the background thread");
+            sb.AppendLine("                // and queue the UI update, so 10 ms receive rates stay accurate.");
+            sb.AppendLine("                _transport.DataReceived += OnDataReceivedBackground;");
+            sb.AppendLine("                _transport.StatusChanged += message => Dispatcher.Invoke(() =>");
+            sb.AppendLine("                {");
+            sb.AppendLine("                    if (message.Contains(\"timeout\", StringComparison.OrdinalIgnoreCase)) _timeoutCount++;");
+            sb.AppendLine("                    Log(message);");
+            sb.AppendLine("                });");
             sb.AppendLine("                _transport.Start();");
             sb.AppendLine("                Log($\"Started: {_transport.Description}.\");");
             sb.AppendLine("            }");
@@ -659,23 +1306,52 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            _transport = null;");
             sb.AppendLine("        }");
             sb.AppendLine();
+            sb.AppendLine("        /// <summary>Runs on the transport thread: records with a precise timestamp and");
+            sb.AppendLine("        /// queues the UI update without blocking the receive loop.</summary>");
+            sb.AppendLine("        private void OnDataReceivedBackground(byte[] data, string from)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            _recorder.Record(false, data.Length >= 2 ? BitConverter.ToUInt16(data, 0) : -1, data);");
+            sb.AppendLine("            Dispatcher.InvokeAsync(() => OnReceived(data, from));");
+            sb.AppendLine("        }");
+            sb.AppendLine();
             sb.AppendLine("        private void OnReceived(byte[] data, string from)");
             sb.AppendLine("        {");
+            sb.AppendLine("            // Keep this handler light: it runs for every received packet (already recorded).");
+            sb.AppendLine("            // Heavy UI work (graph repaint, statistics refresh) is throttled elsewhere.");
+            sb.AppendLine("            var sw = System.Diagnostics.Stopwatch.StartNew();");
             sb.AppendLine("            int msgId = data.Length >= 2 ? BitConverter.ToUInt16(data, 0) : -1;");
             sb.AppendLine("            var info = MessageCatalog.ById(msgId);");
             sb.AppendLine("            var name = info?.Name ?? $\"Unknown (0x{msgId:X})\";");
+            sb.AppendLine("            RecordTimelineEvent(false, name, \"RECEIVED\", $\"{data.Length} bytes from {from}\", data);");
+            sb.AppendLine("            UpdateStat(name, data.Length, outgoing: false, error: data.Length < 2, dropped: info is null && data.Length >= 2, crcError: HasCrcError(info, data));");
             sb.AppendLine("            _monitor.Insert(0, new MonitorRow");
             sb.AppendLine("            {");
             sb.AppendLine("                Time = DateTime.Now.ToString(\"HH:mm:ss.fff\"), From = from, Message = name, Bytes = data.Length");
             sb.AppendLine("            });");
+            sb.AppendLine("            if (_monitor.Count > 500) _monitor.RemoveAt(_monitor.Count - 1);");
             sb.AppendLine("            _receivedFields.Clear();");
-            sb.AppendLine("            if (info is not null)");
+            sb.AppendLine("            // Decode the field grid only when it is visible; at fast rates this is the");
+            sb.AppendLine("            // most expensive part of the receive path.");
+            sb.AppendLine("            if (info is not null && ReceivedFieldsGrid.IsVisible)");
             sb.AppendLine("            {");
-            sb.AppendLine("                info.ConvertToPhysical(data, info.GetPhysical());");
+            sb.AppendLine("                lock (_nativeLock) info.ConvertToPhysical(data, info.GetPhysical());");
             sb.AppendLine("                foreach (var f in info.Fields)");
             sb.AppendLine("                    _receivedFields.Add(new ReceivedField { Offset = f.Offset, Field = f.Field, Value = f.Read(data) });");
             sb.AppendLine("            }");
-            sb.AppendLine("            Log($\"RX {name} ({data.Length} bytes) from {from}.\");");
+            sb.AppendLine("            // Per-message RX logging is skipped (the Monitor grid shows it) to keep fast rates smooth.");
+            sb.AppendLine("            sw.Stop();");
+            sb.AppendLine("            Interlocked.Add(ref _totalProcessingTicks, sw.ElapsedTicks);");
+            sb.AppendLine("            Interlocked.Increment(ref _processedMessages);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Verifies the additive checksum of a received message when it has a CRC field.</summary>");
+            sb.AppendLine("        private static bool HasCrcError(MessageInfo? info, byte[] data)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            var crc = info?.Fields.FirstOrDefault(f => f.Field.EndsWith(\".crc\", StringComparison.OrdinalIgnoreCase));");
+            sb.AppendLine("            if (crc is null || crc.Offset + 4 > data.Length) return false;");
+            sb.AppendLine("            uint sum = 0;");
+            sb.AppendLine("            for (int i = 0; i < crc.Offset; i++) sum += data[i];");
+            sb.AppendLine("            return BitConverter.ToUInt32(data, crc.Offset) != sum;");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        private void ClearMonitor_Click(object sender, RoutedEventArgs e)");
@@ -732,15 +1408,1338 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            TrafficLogBox.Clear();");
             sb.AppendLine("        }");
             sb.AppendLine();
+            AppendLookAndFeelLogic(sb);
+            sb.AppendLine();
+            AppendScenarioLogic(sb);
+            sb.AppendLine();
+            AppendRecordLogic(sb);
+            sb.AppendLine();
+            AppendGraphLogic(sb);
+            sb.AppendLine();
+            AppendRecordGraphLogic(sb);
+            sb.AppendLine();
+            AppendStatisticsLogic(sb);
+            sb.AppendLine();
             sb.AppendLine("        private void Log(string message)");
             sb.AppendLine("        {");
-            sb.AppendLine("            TrafficLogBox.AppendText($\"[{DateTime.Now:HH:mm:ss.fff}] {message}\" + Environment.NewLine);");
-            sb.AppendLine("            TrafficLogBox.ScrollToEnd();");
+            sb.AppendLine("            var line = $\"[{DateTime.Now:HH:mm:ss.fff}] {message}\" + Environment.NewLine;");
+            sb.AppendLine("            AppendLog(TrafficLogBox, line);");
+            sb.AppendLine("            AppendLog(ScenarioLogBox, line);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Appends and trims the log so endless traffic cannot bloat the UI.</summary>");
+            sb.AppendLine("        private static void AppendLog(System.Windows.Controls.TextBox box, string line)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (box.Text.Length > 400000) box.Text = box.Text.Substring(box.Text.Length - 200000);");
+            sb.AppendLine("            box.AppendText(line);");
+            sb.AppendLine("            box.ScrollToEnd();");
             sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine("}");
             return sb.ToString();
         }
+
+        /// <summary>Emits the Look &amp; Feel selector code-behind: four color themes applied
+        /// by swapping the theme brushes referenced with DynamicResource.</summary>
+        private static void AppendLookAndFeelLogic(StringBuilder sb)
+        {
+            sb.Append("""
+                    // ---- Look & Feel: runtime theme switching ----
+                    private void ThemeCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        var theme = (ThemeCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Dark Blue";
+                        ApplyTheme(theme);
+                    }
+
+                    /// <summary>Swaps the theme brushes; every control bound with DynamicResource restyles instantly.</summary>
+                    private void ApplyTheme(string theme)
+                    {
+                        // window, panel, foreground, dim, header, border, row, altRow, accent, tabBg, tabFg, gridHeaderFg, graphRx
+                        var palette = theme switch
+                        {
+                            "Midnight Black" => new[] { "#000000", "#0D0D0D", "#E0E0E0", "#8A8A8A", "#9CDCFE", "#2B2B2B", "#111111", "#181818", "#0A84FF", "#9CDCFE", "#000000", "#000000", "#FFFFFF" },
+                            "Light" => new[] { "#F5F7FA", "#FFFFFF", "#1B1F24", "#5A6B7C", "#0B5CAD", "#C9D4DE", "#EDF2F7", "#F7FAFC", "#1F6FEB", "#D7E3EF", "#1B1F24", "#1B1F24", "#39424E" },
+                            "Military Green" => new[] { "#101810", "#0B140B", "#DDE8DD", "#7C907C", "#9CCC9C", "#233423", "#152015", "#111A11", "#2E7D32", "#9CCC9C", "#000000", "#000000", "#F0F5F0" },
+                            _ => new[] { "#0E1621", "#0B1220", "#E6EDF3", "#7A8CA0", "#8FB4D9", "#22303C", "#132030", "#0F1A28", "#1F6FEB", "#8FB4D9", "#000000", "#000000", "#FFFFFF" }
+                        };
+                        var keys = new[]
+                        {
+                            "Theme.WindowBackground", "Theme.PanelBackground", "Theme.Foreground", "Theme.DimForeground",
+                            "Theme.HeaderForeground", "Theme.Border", "Theme.RowBackground", "Theme.AltRowBackground",
+                            "Theme.Accent", "Theme.TabBackground", "Theme.TabForeground", "Theme.GridHeaderForeground", "Theme.GraphRx"
+                        };
+                        for (int i = 0; i < keys.Length; i++)
+                        {
+                            var color = (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(palette[i]);
+                            Resources[keys[i]] = new System.Windows.Media.SolidColorBrush(color);
+                        }
+                        if (RecordGraphFieldsGrid is null) return; // still initializing from XAML
+                        RedrawTimeline();
+                        RedrawRecordTimeline();
+                        Log($"Theme changed to '{theme}'.");
+                    }
+
+            """);
+        }
+
+        /// <summary>Emits the Scenario tab code-behind: drag &amp; drop from the palette,
+        /// per-step asynchronous scheduling and folder based save/load.</summary>
+        private static void AppendScenarioLogic(StringBuilder sb)
+        {
+            sb.Append("""
+                    // ---- Scenario tab: drag & drop steps, per-step async scheduling, folder save/load ----
+                    private void AllMessagesList_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+                    {
+                        _dragStartPoint = e.GetPosition(null);
+                    }
+
+                    private void AllMessagesList_PreviewMouseMove(object sender, MouseEventArgs e)
+                    {
+                        if (e.LeftButton != MouseButtonState.Pressed) return;
+                        var pos = e.GetPosition(null);
+                        if (Math.Abs(pos.X - _dragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                            Math.Abs(pos.Y - _dragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+                        if (AllMessagesList.SelectedItem is not string name) return;
+                        DragDrop.DoDragDrop(AllMessagesList, name, DragDropEffects.Copy);
+                    }
+
+                    private void AllMessagesList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+                    {
+                        if (AllMessagesList.SelectedItem is string name) AddScenarioStep(name);
+                    }
+
+                    private void ScenarioSteps_DragOver(object sender, DragEventArgs e)
+                    {
+                        e.Effects = e.Data.GetDataPresent(DataFormats.StringFormat) ? DragDropEffects.Copy : DragDropEffects.None;
+                        e.Handled = true;
+                    }
+
+                    private void ScenarioSteps_Drop(object sender, DragEventArgs e)
+                    {
+                        if (e.Data.GetData(DataFormats.StringFormat) is string name) AddScenarioStep(name);
+                    }
+
+                    /// <summary>Adds a message to the scenario; the same message can be added any number of times.</summary>
+                    private void AddScenarioStep(string messageName)
+                    {
+                        var info = MessageCatalog.ByName(messageName);
+                        if (info is null) return;
+                        var values = ReferenceEquals(info, Current)
+                            ? _fields.ToDictionary(f => f.Field, f => f.Value)
+                            : info.Fields.ToDictionary(f => f.Field, f => f.DefaultValue);
+                        _scenarioSteps.Add(new ScenarioStepRow
+                        {
+                            Message = messageName, TimeMs = 0, PeriodicIntervalMs = 1000,
+                            Periodic = false, MaxMessages = 0, FieldValues = values
+                        });
+                        RenumberSteps();
+                    }
+
+                    private void RenumberSteps()
+                    {
+                        for (int i = 0; i < _scenarioSteps.Count; i++) _scenarioSteps[i].Index = i;
+                    }
+
+                    /// <summary>Shows the clicked step's fields; edits sync straight into the step,
+                    /// so Run and Save always use the values shown in the editor.</summary>
+                    private void ScenarioStepsList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        _stepFields.Clear();
+                        _editingStep = ScenarioStepsList.SelectedItem as ScenarioStepRow;
+                        if (_editingStep is null)
+                        {
+                            StepFieldsHeader.Text = "Step Fields (select a step)";
+                            return;
+                        }
+                        var info = MessageCatalog.ByName(_editingStep.Message);
+                        if (info is null) { StepFieldsHeader.Text = "Step Fields (unknown message)"; return; }
+                        StepFieldsHeader.Text = $"Step {_editingStep.Index}: {_editingStep.Message}";
+                        var step = _editingStep;
+                        step.FieldValues ??= info.Fields.ToDictionary(f => f.Field, f => f.DefaultValue);
+                        foreach (var f in info.Fields)
+                        {
+                            var row = new FieldRow(f)
+                            {
+                                Value = step.FieldValues.TryGetValue(f.Field, out var v) ? v : f.DefaultValue
+                            };
+                            row.PropertyChanged += (_, args) =>
+                            {
+                                if (args.PropertyName == nameof(FieldRow.Value) && step.FieldValues is not null)
+                                    step.FieldValues[row.Field] = row.Value;
+                            };
+                            _stepFields.Add(row);
+                        }
+                    }
+
+
+                    private void RemoveStep_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (ScenarioStepsList.SelectedItem is ScenarioStepRow row)
+                        {
+                            _scenarioSteps.Remove(row);
+                            RenumberSteps();
+                        }
+                    }
+
+                    private void MoveStepUp_Click(object sender, RoutedEventArgs e) => MoveStep(-1);
+
+                    private void MoveStepDown_Click(object sender, RoutedEventArgs e) => MoveStep(1);
+
+                    private void MoveStep(int delta)
+                    {
+                        if (ScenarioStepsList.SelectedItem is not ScenarioStepRow row) return;
+                        var index = _scenarioSteps.IndexOf(row);
+                        var target = index + delta;
+                        if (index < 0 || target < 0 || target >= _scenarioSteps.Count) return;
+                        _scenarioSteps.Move(index, target);
+                        RenumberSteps();
+                        ScenarioStepsList.SelectedItem = row;
+                    }
+
+                    private void ClearSteps_Click(object sender, RoutedEventArgs e)
+                    {
+                        StopScenarioTimers();
+                        _scenarioSteps.Clear();
+                    }
+
+                    private void NewScenario_Click(object sender, RoutedEventArgs e)
+                    {
+                        StopScenarioTimers();
+                        _scenarioSteps.Clear();
+                        _scenarioFolder = null;
+                        ScenarioNameText.Text = "(unsaved scenario)";
+                        Log("New scenario created.");
+                    }
+
+                    private void SaveScenario_Click(object sender, RoutedEventArgs e)
+                    {
+                        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select the scenario folder (Configuration.xml + message JSON files)" };
+                        if (_scenarioFolder is not null) dlg.InitialDirectory = _scenarioFolder;
+                        if (dlg.ShowDialog(this) != true) return;
+                        try
+                        {
+                            ScenarioStore.Save(dlg.FolderName, _scenarioSteps.ToList());
+                            _scenarioFolder = dlg.FolderName;
+                            ScenarioNameText.Text = Path.GetFileName(dlg.FolderName);
+                            Log($"Scenario saved to {dlg.FolderName} ({_scenarioSteps.Count} step(s)).");
+                        }
+                        catch (Exception ex) { Log("Scenario save error: " + ex.Message); }
+                    }
+
+                    private void OpenScenario_Click(object sender, RoutedEventArgs e)
+                    {
+                        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Select a scenario folder containing Configuration.xml" };
+                        if (dlg.ShowDialog(this) != true) return;
+                        try
+                        {
+                            StopScenarioTimers();
+                            _scenarioSteps.Clear();
+                            foreach (var step in ScenarioStore.Load(dlg.FolderName)) _scenarioSteps.Add(step);
+                            RenumberSteps();
+                            _scenarioFolder = dlg.FolderName;
+                            ScenarioNameText.Text = Path.GetFileName(dlg.FolderName);
+                            Log($"Scenario loaded from {dlg.FolderName} ({_scenarioSteps.Count} step(s)).");
+                        }
+                        catch (Exception ex) { Log("Scenario open error: " + ex.Message); }
+                    }
+
+                    // ---- Scenario execution: every step is scheduled independently (asynchronously) ----
+                    private void RunScenario_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (_scenarioRunning) { Log("Scenario is already running."); return; }
+                        if (_transport is null) { Log("Start the transport before running a scenario."); return; }
+                        if (_scenarioSteps.Count == 0) { Log("The scenario has no steps."); return; }
+                        _scenarioRunning = true;
+                        foreach (var step in _scenarioSteps) ScheduleStep(step);
+                        Log($"Scenario started ({_scenarioSteps.Count} step(s)).");
+                    }
+
+                    /// <summary>Arms one step: a DispatcherTimer waits its start time, then the
+                    /// periodic repeats run on a PrecisionTimer for millisecond-accurate cadence.</summary>
+                    private void ScheduleStep(ScenarioStepRow step)
+                    {
+                        var info = MessageCatalog.ByName(step.Message);
+                        if (info is null) { Log($"Step {step.Index}: unknown message '{step.Message}'."); return; }
+                        var fields = BuildStepFields(info, step);
+                        var startTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(1, step.TimeMs)) };
+                        startTimer.Tick += (_, _) =>
+                        {
+                            startTimer.Stop();
+                            _scenarioTimers.Remove(startTimer);
+                            if (!_scenarioRunning) return;
+                            SendMessage(info, fields, step.Periodic);
+                            if (!step.Periodic || step.PeriodicIntervalMs <= 0 || step.MaxMessages == 1) return;
+                            // Snapshot the auto flags on the UI thread; the repeats run off the UI thread.
+                            bool autoSeq = AutoSequenceCheck.IsChecked == true;
+                            bool autoTs = AutoTimestampCheck.IsChecked == true;
+                            bool autoCrc = AutoCrcCheck.IsChecked == true;
+                            var sent = 1;
+                            PrecisionTimer? periodicTimer = null;
+                            periodicTimer = new PrecisionTimer(Math.Max(1, step.PeriodicIntervalMs), () =>
+                            {
+                                if (!_scenarioRunning) return;
+                                var i = Interlocked.Increment(ref sent);
+                                if (step.MaxMessages > 0 && i > step.MaxMessages) return;
+                                SendMessageCore(info, fields, true, autoSeq, autoTs, autoCrc);
+                                if (step.MaxMessages > 0 && i == step.MaxMessages)
+                                {
+                                    periodicTimer!.Dispose();
+                                    lock (_scenarioPrecisionTimers) _scenarioPrecisionTimers.Remove(periodicTimer!);
+                                    Dispatcher.InvokeAsync(() => Log($"Step {step.Index} ({step.Message}): periodic completed ({i} sent)."));
+                                }
+                            });
+                            lock (_scenarioPrecisionTimers) _scenarioPrecisionTimers.Add(periodicTimer);
+                        };
+                        _scenarioTimers.Add(startTimer);
+                        startTimer.Start();
+                    }
+
+                    /// <summary>Builds the field rows for a step from its saved JSON values over the defaults.</summary>
+                    private static List<FieldRow> BuildStepFields(MessageInfo info, ScenarioStepRow step)
+                    {
+                        var list = new List<FieldRow>(info.Fields.Length);
+                        foreach (var f in info.Fields)
+                        {
+                            var row = new FieldRow(f) { Value = f.DefaultValue };
+                            if (step.FieldValues is not null && step.FieldValues.TryGetValue(f.Field, out var v)) row.Value = v;
+                            list.Add(row);
+                        }
+                        return list;
+                    }
+
+                    private void StopScenario_Click(object sender, RoutedEventArgs e)
+                    {
+                        StopScenarioTimers();
+                        Log("Scenario stopped.");
+                    }
+
+                    private void StopScenarioTimers()
+                    {
+                        _scenarioRunning = false;
+                        foreach (var timer in _scenarioTimers) timer.Stop();
+                        _scenarioTimers.Clear();
+                        lock (_scenarioPrecisionTimers)
+                        {
+                            foreach (var timer in _scenarioPrecisionTimers) timer.Dispose();
+                            _scenarioPrecisionTimers.Clear();
+                        }
+                    }
+
+                    private void ClearScenarioLog_Click(object sender, RoutedEventArgs e)
+                    {
+                        ScenarioLogBox.Clear();
+                    }
+
+            """);
+        }
+
+        /// <summary>Emits the Record button and Record tab code-behind.</summary>
+        private static void AppendRecordLogic(StringBuilder sb)
+        {
+            sb.Append("""
+                    // ---- Recording: capture all TX/RX messages to a binary file, browse them back ----
+                    private void Record_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (_recorder.IsRecording)
+                        {
+                            var path = _recorder.Stop();
+                            RecordButton.Content = "\u25CF Record";
+                            RecordButton.Background = System.Windows.Media.Brushes.MediumPurple;
+                            Log($"Recording stopped: {_recorder.RecordedCount} message(s) written to {path}.");
+                            return;
+                        }
+
+                        var dlg = new Microsoft.Win32.SaveFileDialog
+                        {
+                            Filter = "Recording|*.bin",
+                            FileName = $"Recording_{DateTime.Now:yyyyMMdd_HHmmss}.bin"
+                        };
+                        if (dlg.ShowDialog() != true) return;
+                        try
+                        {
+                            _recorder.Start(dlg.FileName);
+                            RecordButton.Content = "\u25A0 Stop Rec";
+                            RecordButton.Background = System.Windows.Media.Brushes.Firebrick;
+                            Log($"Recording started: {dlg.FileName}.");
+                        }
+                        catch (Exception ex) { Log("Record error: " + ex.Message); }
+                    }
+
+                    private void OpenRecording_Click(object sender, RoutedEventArgs e)
+                    {
+                        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Recording|*.bin|All files|*.*" };
+                        if (dlg.ShowDialog() != true) return;
+                        try
+                        {
+                            _loadedRecords = RecordingFile.Load(dlg.FileName);
+                            RecordFileText.Text = Path.GetFileName(dlg.FileName);
+                            RecordSummaryText.Text = $"{_loadedRecords.Count} message(s)";
+
+                            // Left side: one entry per message type found in the file.
+                            RecordTypesList.Items.Clear();
+                            foreach (var group in _loadedRecords
+                                .GroupBy(r => r.MessageId)
+                                .OrderBy(g => g.Key))
+                            {
+                                var name = MessageCatalog.ById(group.Key)?.Name ?? $"Unknown (0x{group.Key:X})";
+                                RecordTypesList.Items.Add($"{name} [{group.Count()}]");
+                            }
+                            RecordedMessagesGrid.ItemsSource = null;
+                            if (RecordTypesList.Items.Count > 0) RecordTypesList.SelectedIndex = 0;
+                            Log($"Recording loaded: {dlg.FileName} ({_loadedRecords.Count} message(s)).");
+                        }
+                        catch (Exception ex) { Log("Open recording error: " + ex.Message); }
+                    }
+
+                    /// <summary>Shows every recorded message of the type selected on the left.</summary>
+                    private void RecordTypesList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (RecordTypesList.SelectedItem is not string entry) return;
+                        var name = entry[..entry.LastIndexOf(" [", StringComparison.Ordinal)];
+                        var info = MessageCatalog.ByName(name);
+                        var rows = new List<RecordedMessageRow>();
+                        var ordinal = 1;
+                        foreach (var record in _loadedRecords)
+                        {
+                            var recordName = MessageCatalog.ById(record.MessageId)?.Name ?? $"Unknown (0x{record.MessageId:X})";
+                            if (info is null ? recordName != name : record.MessageId != info.MessageId) continue;
+                            rows.Add(new RecordedMessageRow
+                            {
+                                Ordinal = ordinal++,
+                                Time = record.Timestamp.ToString("HH:mm:ss.fff"),
+                                Direction = record.IsOutgoing ? "TX (MBT \u2192 NIRON)" : "RX (NIRON \u2192 MBT)",
+                                Message = recordName,
+                                MessageId = record.MessageId,
+                                Bytes = record.Data.Length,
+                                Hex = Convert.ToHexString(record.Data),
+                                Data = record.Data
+                            });
+                        }
+                        RecordedMessagesGrid.ItemsSource = rows;
+                        RecordFieldsGrid.ItemsSource = null;
+                        RecordFieldsHeader.Text = "Message Fields (select a row)";
+                    }
+
+                    /// <summary>Decodes and shows every field of the recorded message clicked in the table.</summary>
+                    private void RecordedMessagesGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (RecordedMessagesGrid.SelectedItem is not RecordedMessageRow row)
+                        {
+                            RecordFieldsHeader.Text = "Message Fields (select a row)";
+                            RecordFieldsGrid.ItemsSource = null;
+                            return;
+                        }
+                        var info = MessageCatalog.ById(row.MessageId);
+                        if (info is null)
+                        {
+                            RecordFieldsHeader.Text = $"Message Fields (unknown message 0x{row.MessageId:X})";
+                            RecordFieldsGrid.ItemsSource = null;
+                            return;
+                        }
+                        RecordFieldsHeader.Text = $"{row.Message}  #{row.Ordinal}  {row.Time}";
+                        RecordFieldsGrid.ItemsSource = info.Fields
+                            .Select(f => new ReceivedField { Offset = f.Offset, Field = f.Field, Value = f.Read(row.Data) })
+                            .ToList();
+                    }
+
+                    /// <summary>Exports every recorded message of the selected type to CSV:
+                    /// one column per message field, one row per recorded message.</summary>
+                    private void ExportRecordType_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (RecordTypesList.SelectedItem is not string entry) { Log("Select a message type to export."); return; }
+                        var name = entry[..entry.LastIndexOf(" [", StringComparison.Ordinal)];
+                        var info = MessageCatalog.ByName(name);
+                        if (info is null) { Log($"Cannot export '{name}': unknown message type."); return; }
+                        var records = _loadedRecords.Where(r => r.MessageId == info.MessageId).ToList();
+                        if (records.Count == 0) { Log($"No recorded messages of type '{name}'."); return; }
+
+                        var dlg = new Microsoft.Win32.SaveFileDialog
+                        {
+                            Filter = "CSV|*.csv",
+                            FileName = $"{name}_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
+                        };
+                        if (dlg.ShowDialog() != true) return;
+                        try
+                        {
+                            var sb = new StringBuilder();
+                            // Header: the fields of the message.
+                            sb.Append("#,Time,Direction");
+                            foreach (var f in info.Fields) sb.Append(',').Append(Csv(f.Field));
+                            sb.AppendLine();
+
+                            // One row per recorded message of this type, values decoded from the raw bytes.
+                            var ordinal = 1;
+                            foreach (var record in records)
+                            {
+                                sb.Append(ordinal++).Append(',');
+                                sb.Append(record.Timestamp.ToString("HH:mm:ss.fff")).Append(',');
+                                sb.Append(record.IsOutgoing ? "TX" : "RX");
+                                foreach (var f in info.Fields) sb.Append(',').Append(Csv(f.Read(record.Data)));
+                                sb.AppendLine();
+                            }
+                            File.WriteAllText(dlg.FileName, sb.ToString(), Encoding.UTF8);
+                            Log($"Export_{name}: {records.Count} message(s) written to {dlg.FileName}.");
+                        }
+                        catch (Exception ex) { Log("Export type error: " + ex.Message); }
+                    }
+
+                    /// <summary>Escapes one CSV cell.</summary>
+                    private static string Csv(string value) =>
+                        value.Contains(',') || value.Contains('"') || value.Contains('\n')
+                            ? "\"" + value.Replace("\"", "\"\"") + "\""
+                            : value;
+
+            """);
+        }
+
+        /// <summary>Emits the Graph tab code-behind: timeline recording, filtering and rendering.</summary>
+        private static void AppendGraphLogic(StringBuilder sb)
+        {
+            sb.Append("""
+                    // ---- Graph tab: live message timeline (TX lane / RX lane) ----
+                    private void AddGraphFilter(string messageName)
+                    {
+                        var check = new System.Windows.Controls.CheckBox
+                        {
+                            Content = messageName, Tag = messageName, IsChecked = true, Margin = new Thickness(2)
+                        };
+                        check.SetResourceReference(System.Windows.Controls.CheckBox.ForegroundProperty, "Theme.Foreground");
+                        check.Checked += (_, _) => RedrawTimeline();
+                        check.Unchecked += (_, _) => RedrawTimeline();
+                        GraphFilterPanel.Children.Add(check);
+                    }
+
+                    /// <summary>Hard cap so endless traffic cannot exhaust memory or slow the repaint.</summary>
+                    private const int MaxTimelineEvents = 5000;
+
+                    /// <summary>Stores one timeline point and marks the graph dirty; the refresh timer
+                    /// repaints it (throttled) so heavy traffic cannot freeze the UI.</summary>
+                    private void RecordTimelineEvent(bool outgoing, string message, string status, string details, byte[] data)
+                    {
+                        _timelineEvents.Add(new TimelineEvent
+                        {
+                            Timestamp = DateTime.Now, IsOutgoing = outgoing,
+                            Message = message, Status = status, Details = details, Data = data
+                        });
+                        _messageCounts[message] = _messageCounts.TryGetValue(message, out var count) ? count + 1 : 1;
+                        // Do not call RedrawTimeline here. At 10 ms traffic rates that would force
+                        // a full canvas rebuild for every packet. The timer above coalesces repaint work.
+                        // Drop the oldest chunk when over the cap (chunked so the cost is amortized).
+                        if (_timelineEvents.Count > MaxTimelineEvents)
+                            _timelineEvents.RemoveRange(0, 1000);
+                        _timelineDirty = true;
+                    }
+
+                    /// <summary>Pause freezes the timeline display; events keep accumulating in the background.</summary>
+                    private void GraphPause_Click(object sender, RoutedEventArgs e)
+                    {
+                        _graphPaused = !_graphPaused;
+                        GraphPauseButton.Content = _graphPaused ? "\u25B6 Resume" : "\u23F8 Pause";
+                        GraphPauseButton.Background = _graphPaused
+                            ? System.Windows.Media.Brushes.Firebrick
+                            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xB0, 0x88, 0x00));
+                        if (!_graphPaused) RedrawTimeline();
+                        Log(_graphPaused ? "Graph paused (events keep accumulating)." : "Graph resumed.");
+                    }
+
+                    private void GraphZoomIn_Click(object sender, RoutedEventArgs e) => SetGraphZoom(_graphZoom * 1.25);
+
+                    private void GraphZoomOut_Click(object sender, RoutedEventArgs e) => SetGraphZoom(_graphZoom / 1.25);
+
+                    private void GraphFit_Click(object sender, RoutedEventArgs e) => SetGraphZoom(1.0);
+
+                    private void SetGraphZoom(double zoom)
+                    {
+                        _graphZoom = Math.Clamp(zoom, 0.25, 20.0);
+                        GraphZoomText.Text = $"{_graphZoom * 100:0}%";
+                        RedrawTimeline();
+                    }
+
+                    /// <summary>Ctrl + mouse wheel zooms the timeline in/out around the cursor position.</summary>
+                    private void GraphScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+                    {
+                        if (Keyboard.Modifiers != ModifierKeys.Control) return;
+                        var mouseX = e.GetPosition(GraphScroll).X;
+                        var contentX = GraphScroll.HorizontalOffset + mouseX;
+                        var oldZoom = _graphZoom;
+                        SetGraphZoom(e.Delta > 0 ? _graphZoom * 1.25 : _graphZoom / 1.25);
+                        GraphScroll.ScrollToHorizontalOffset(Math.Max(0, contentX * (_graphZoom / oldZoom) - mouseX));
+                        e.Handled = true;
+                    }
+
+                    private void GraphOptions_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => RedrawTimeline();
+
+                    private void ClearTimeline_Click(object sender, RoutedEventArgs e)
+                    {
+                        _timelineEvents.Clear();
+                        _messageCounts.Clear();
+                        RedrawTimeline();
+                        GraphFieldsGrid.ItemsSource = null;
+                        GraphFieldsHeader.Text = "Message Fields (click a point or row)";
+                        Log("Timeline cleared.");
+                    }
+
+                    /// <summary>Shows every field of the timeline event selected in the details table.</summary>
+                    private void TimelineDetailsGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (TimelineDetailsGrid.SelectedItem is TimelineEvent ev) ShowTimelineEventFields(ev);
+                    }
+
+                    /// <summary>Decodes all the fields of one timeline event into the Message Fields panel.</summary>
+                    private void ShowTimelineEventFields(TimelineEvent ev)
+                    {
+                        var info = MessageCatalog.ByName(ev.Message);
+                        if (info is null || ev.Data.Length == 0)
+                        {
+                            GraphFieldsHeader.Text = $"Message Fields ({ev.Message}: no decode available)";
+                            GraphFieldsGrid.ItemsSource = null;
+                            return;
+                        }
+                        GraphFieldsHeader.Text = $"{ev.Message}  {ev.Time}  ({(ev.IsOutgoing ? "TX" : "RX")})";
+                        GraphFieldsGrid.ItemsSource = info.Fields
+                            .Select(f => new ReceivedField { Offset = f.Offset, Field = f.Field, Value = f.Read(ev.Data) })
+                            .ToList();
+                    }
+
+                    /// <summary>The events that pass the message and direction filters, in time order.</summary>
+                    private List<TimelineEvent> FilteredTimelineEvents()
+                    {
+                        var enabled = GraphFilterPanel.Children.OfType<System.Windows.Controls.CheckBox>()
+                            .Where(c => c.IsChecked == true)
+                            .Select(c => c.Tag?.ToString())
+                            .ToHashSet();
+                        var direction = (GraphDirectionCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "All";
+                        var known = MessageCatalog.Messages.Select(m => m.Name).ToHashSet();
+                        return _timelineEvents
+                            .Where(ev => enabled.Contains(ev.Message) || !known.Contains(ev.Message))
+                            .Where(ev => direction == "All" ||
+                                         (direction == "MBT \u2192 NIRON" && ev.IsOutgoing) ||
+                                         (direction == "NIRON \u2192 MBT" && !ev.IsOutgoing))
+                            .OrderBy(ev => ev.Timestamp)
+                            .ToList();
+                    }
+
+                    /// <summary>Clicking a timeline point selects and scrolls to its row in the Details
+                    /// table; the selection change also decodes the message fields.</summary>
+                    private void FocusTimelineEvent(TimelineEvent ev)
+                    {
+                        TimelineDetailsGrid.SelectedItem = ev;
+                        TimelineDetailsGrid.ScrollIntoView(ev);
+                        TimelineDetailsGrid.Focus();
+                        ShowTimelineEventFields(ev);
+                    }
+
+                    /// <summary>Draws the Graph tab timeline from the live events.</summary>
+                    private void RedrawTimeline()
+                    {
+                        if (TimelineCanvas is null) return;
+                        _timelineDirty = false;
+                        UpdateGraphFilterCounts();
+                        var events = FilteredTimelineEvents();
+                        TimelineDetailsGrid.ItemsSource = events;
+                        DrawTimelineCore(TimelineCanvas, GraphScroll, events, _graphZoom, FocusTimelineEvent);
+                    }
+
+                    /// <summary>Shows the number of sent/received messages next to each message filter.</summary>
+                    private void UpdateGraphFilterCounts()
+                    {
+                        foreach (var check in GraphFilterPanel.Children.OfType<System.Windows.Controls.CheckBox>())
+                        {
+                            var name = check.Tag?.ToString() ?? string.Empty;
+                            check.Content = _messageCounts.TryGetValue(name, out var count) && count > 0
+                                ? $"{name} [{count}]"
+                                : name;
+                        }
+                    }
+
+                    /// <summary>Shared two-lane timeline renderer (TX on top, RX below) with time axis and
+                    /// labels, used by both the Graph and the Record Graph tabs.</summary>
+                    private static void DrawTimelineCore(System.Windows.Controls.Canvas canvas, System.Windows.Controls.ScrollViewer scroll,
+                        List<TimelineEvent> events, double zoom, Action<TimelineEvent> onDotClick)
+                    {
+                        canvas.Children.Clear();
+                        if (events.Count == 0) { canvas.Width = double.NaN; return; }
+
+                        // Rendering caps keep the canvas responsive under heavy traffic: only the newest
+                        // events are drawn (the Details table still lists all of them) and per-event
+                        // labels are skipped for dense views.
+                        const int maxRendered = 400;
+                        var total = events.Count;
+                        if (events.Count > maxRendered)
+                            events = events.GetRange(events.Count - maxRendered, maxRendered);
+                        var drawLabels = events.Count <= 150;
+
+                        var start = events[0].Timestamp;
+                        var end = events[^1].Timestamp;
+                        var span = Math.Max((end - start).TotalMilliseconds, 1);
+
+                        const double leftPad = 70, rightPad = 40;
+                        var viewWidth = Math.Max(scroll.ViewportWidth - 4, 900);
+                        var width = Math.Max(viewWidth, viewWidth * zoom);
+                        canvas.Width = width + leftPad + rightPad;
+
+                        var height = canvas.Height;
+                        double txLane = height * 0.30, rxLane = height * 0.62, axisY = height - 46;
+                        // My side (MBT, TX) is always green; the other brushes follow the active theme.
+                        var txBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x23, 0x86, 0x36));
+                        var rxBrush = canvas.TryFindResource("Theme.GraphRx") as System.Windows.Media.Brush
+                            ?? System.Windows.Media.Brushes.White;
+                        var laneBrush = canvas.TryFindResource("Theme.Border") as System.Windows.Media.Brush
+                            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x22, 0x30, 0x3C));
+                        var textBrush = canvas.TryFindResource("Theme.Foreground") as System.Windows.Media.Brush
+                            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xE6, 0xED, 0xF3));
+                        var dimBrush = canvas.TryFindResource("Theme.DimForeground") as System.Windows.Media.Brush
+                            ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x7A, 0x8C, 0xA0));
+
+                        if (total > events.Count)
+                        {
+                            var note = new System.Windows.Controls.TextBlock
+                            {
+                                Text = $"Showing newest {events.Count} of {total} events - the Details table lists all",
+                                Foreground = dimBrush, FontSize = 10, FontStyle = FontStyles.Italic
+                            };
+                            System.Windows.Controls.Canvas.SetLeft(note, leftPad + 4);
+                            System.Windows.Controls.Canvas.SetTop(note, 4);
+                            canvas.Children.Add(note);
+                        }
+
+                        // Lane base lines + labels.
+                        foreach (var (y, label) in new[] { (txLane, "MBT \u2192 NIRON"), (rxLane, "NIRON \u2192 MBT") })
+                        {
+                            var line = new System.Windows.Shapes.Line
+                            {
+                                X1 = leftPad, X2 = leftPad + width, Y1 = y, Y2 = y,
+                                Stroke = laneBrush, StrokeThickness = 2
+                            };
+                            canvas.Children.Add(line);
+                            var text = new System.Windows.Controls.TextBlock
+                            {
+                                Text = label, Foreground = dimBrush, FontSize = 10, FontWeight = FontWeights.Bold
+                            };
+                            System.Windows.Controls.Canvas.SetLeft(text, 2);
+                            System.Windows.Controls.Canvas.SetTop(text, y - 8);
+                            canvas.Children.Add(text);
+                        }
+
+                        // Time axis with ~8 ticks.
+                        var axis = new System.Windows.Shapes.Line
+                        {
+                            X1 = leftPad, X2 = leftPad + width, Y1 = axisY, Y2 = axisY,
+                            Stroke = laneBrush, StrokeThickness = 1
+                        };
+                        canvas.Children.Add(axis);
+                        for (int t = 0; t <= 8; t++)
+                        {
+                            var x = leftPad + width * t / 8.0;
+                            var time = start.AddMilliseconds(span * t / 8.0);
+                            var tick = new System.Windows.Shapes.Line
+                            {
+                                X1 = x, X2 = x, Y1 = axisY - 4, Y2 = axisY + 4,
+                                Stroke = dimBrush, StrokeThickness = 1
+                            };
+                            canvas.Children.Add(tick);
+                            var tickText = new System.Windows.Controls.TextBlock
+                            {
+                                Text = time.ToString("HH:mm:ss.fff"), Foreground = dimBrush, FontSize = 9
+                            };
+                            System.Windows.Controls.Canvas.SetLeft(tickText, x - 34);
+                            System.Windows.Controls.Canvas.SetTop(tickText, axisY + 8);
+                            canvas.Children.Add(tickText);
+                        }
+                        var axisLabel = new System.Windows.Controls.TextBlock
+                        {
+                            Text = "Time (hh:mm:ss.mmm)", Foreground = dimBrush, FontSize = 10
+                        };
+                        System.Windows.Controls.Canvas.SetLeft(axisLabel, leftPad + width / 2 - 60);
+                        System.Windows.Controls.Canvas.SetTop(axisLabel, axisY + 24);
+                        canvas.Children.Add(axisLabel);
+
+                        // One marker per event: dot on its lane, dashed drop line and a label.
+                        bool flip = false;
+                        foreach (var ev in events)
+                        {
+                            var x = leftPad + width * (ev.Timestamp - start).TotalMilliseconds / span;
+                            var laneY = ev.IsOutgoing ? txLane : rxLane;
+                            var brush = ev.IsOutgoing ? txBrush : rxBrush;
+
+                            var drop = new System.Windows.Shapes.Line
+                            {
+                                X1 = x, X2 = x, Y1 = laneY, Y2 = axisY,
+                                Stroke = brush, StrokeThickness = 1,
+                                StrokeDashArray = new System.Windows.Media.DoubleCollection { 3, 3 }, Opacity = 0.5
+                            };
+                            canvas.Children.Add(drop);
+
+                            var dot = new System.Windows.Shapes.Ellipse { Width = 10, Height = 10, Fill = brush, Cursor = Cursors.Hand };
+                            System.Windows.Controls.Canvas.SetLeft(dot, x - 5);
+                            System.Windows.Controls.Canvas.SetTop(dot, laneY - 5);
+                            dot.ToolTip = $"{ev.Message}\n{ev.Time}\n{ev.Direction}\n{ev.Details}\nClick to focus it in Details and show all fields";
+                            dot.MouseLeftButtonDown += (_, _) => onDotClick(ev);
+                            canvas.Children.Add(dot);
+
+                            // Labels are skipped in dense views (tooltips still show the details).
+                            if (!drawLabels) continue;
+
+                            // Alternate label rows above/below the lane to reduce overlap.
+                            var labelY = ev.IsOutgoing ? laneY - (flip ? 46 : 30) : laneY + (flip ? 26 : 10);
+                            flip = !flip;
+                            var label = new System.Windows.Controls.TextBlock
+                            {
+                                Text = $"{ev.Message}\n{ev.Time}", Foreground = textBrush,
+                                FontSize = 9, TextAlignment = TextAlignment.Center
+                            };
+                            System.Windows.Controls.Canvas.SetLeft(label, x - 40);
+                            System.Windows.Controls.Canvas.SetTop(label, labelY);
+                            canvas.Children.Add(label);
+                        }
+                    }
+
+            """);
+        }
+
+        /// <summary>Emits the Record Graph tab code-behind: loads a recording into timeline
+        /// events and reuses the shared renderer, filters, zoom and field decoding.</summary>
+        private static void AppendRecordGraphLogic(StringBuilder sb)
+        {
+            sb.Append("""
+                    // ---- Record Graph tab: timeline view of a recorded .bin file ----
+                    private void OpenRecordGraph_Click(object sender, RoutedEventArgs e)
+                    {
+                        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Recording|*.bin|All files|*.*" };
+                        if (dlg.ShowDialog() != true) return;
+                        try
+                        {
+                            var records = RecordingFile.Load(dlg.FileName);
+                            _recordGraphEvents.Clear();
+                            foreach (var record in records)
+                            {
+                                var name = MessageCatalog.ById(record.MessageId)?.Name ?? $"Unknown (0x{record.MessageId:X})";
+                                _recordGraphEvents.Add(new TimelineEvent
+                                {
+                                    Timestamp = record.Timestamp, IsOutgoing = record.IsOutgoing,
+                                    Message = name, Status = record.IsOutgoing ? "SENT" : "RECEIVED",
+                                    Details = $"{record.Data.Length} bytes (recorded)", Data = record.Data
+                                });
+                            }
+                            RecordGraphFileText.Text = Path.GetFileName(dlg.FileName);
+                            RecordGraphSummaryText.Text = $"{_recordGraphEvents.Count} message(s)";
+
+                            // One filter checkbox per message type found in the file, with its count.
+                            RecordGraphFilterPanel.Children.Clear();
+                            foreach (var group in _recordGraphEvents.GroupBy(ev => ev.Message).OrderBy(g => g.Key))
+                            {
+                                var check = new System.Windows.Controls.CheckBox
+                                {
+                                    Content = $"{group.Key} [{group.Count()}]", Tag = group.Key,
+                                    IsChecked = true, Margin = new Thickness(2)
+                                };
+                                check.SetResourceReference(System.Windows.Controls.CheckBox.ForegroundProperty, "Theme.Foreground");
+                                check.Checked += (_, _) => RedrawRecordTimeline();
+                                check.Unchecked += (_, _) => RedrawRecordTimeline();
+                                RecordGraphFilterPanel.Children.Add(check);
+                            }
+                            RecordGraphFieldsGrid.ItemsSource = null;
+                            RecordGraphFieldsHeader.Text = "Message Fields (click a point or row)";
+                            RedrawRecordTimeline();
+                            Log($"Record graph loaded: {dlg.FileName} ({_recordGraphEvents.Count} message(s)).");
+                        }
+                        catch (Exception ex) { Log("Open record graph error: " + ex.Message); }
+                    }
+
+                    private void RecordGraphZoomIn_Click(object sender, RoutedEventArgs e) => SetRecordGraphZoom(_recordGraphZoom * 1.25);
+
+                    private void RecordGraphZoomOut_Click(object sender, RoutedEventArgs e) => SetRecordGraphZoom(_recordGraphZoom / 1.25);
+
+                    private void RecordGraphFit_Click(object sender, RoutedEventArgs e) => SetRecordGraphZoom(1.0);
+
+                    private void SetRecordGraphZoom(double zoom)
+                    {
+                        _recordGraphZoom = Math.Clamp(zoom, 0.25, 20.0);
+                        RecordGraphZoomText.Text = $"{_recordGraphZoom * 100:0}%";
+                        RedrawRecordTimeline();
+                    }
+
+                    /// <summary>Ctrl + mouse wheel zooms the recorded timeline around the cursor position.</summary>
+                    private void RecordGraphScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+                    {
+                        if (Keyboard.Modifiers != ModifierKeys.Control) return;
+                        var mouseX = e.GetPosition(RecordGraphScroll).X;
+                        var contentX = RecordGraphScroll.HorizontalOffset + mouseX;
+                        var oldZoom = _recordGraphZoom;
+                        SetRecordGraphZoom(e.Delta > 0 ? _recordGraphZoom * 1.25 : _recordGraphZoom / 1.25);
+                        RecordGraphScroll.ScrollToHorizontalOffset(Math.Max(0, contentX * (_recordGraphZoom / oldZoom) - mouseX));
+                        e.Handled = true;
+                    }
+
+                    private void RecordGraphOptions_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => RedrawRecordTimeline();
+
+                    /// <summary>Shows every field of the recorded event selected in the details table.</summary>
+                    private void RecordGraphDetailsGrid_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (RecordGraphDetailsGrid.SelectedItem is TimelineEvent ev) ShowRecordGraphEventFields(ev);
+                    }
+
+                    /// <summary>Decodes all the fields of one recorded event into the Message Fields panel.</summary>
+                    private void ShowRecordGraphEventFields(TimelineEvent ev)
+                    {
+                        var info = MessageCatalog.ByName(ev.Message);
+                        if (info is null || ev.Data.Length == 0)
+                        {
+                            RecordGraphFieldsHeader.Text = $"Message Fields ({ev.Message}: no decode available)";
+                            RecordGraphFieldsGrid.ItemsSource = null;
+                            return;
+                        }
+                        RecordGraphFieldsHeader.Text = $"{ev.Message}  {ev.Time}  ({(ev.IsOutgoing ? "TX" : "RX")})";
+                        RecordGraphFieldsGrid.ItemsSource = info.Fields
+                            .Select(f => new ReceivedField { Offset = f.Offset, Field = f.Field, Value = f.Read(ev.Data) })
+                            .ToList();
+                    }
+
+                    /// <summary>The recorded events that pass the message and direction filters, in time order.</summary>
+                    private List<TimelineEvent> FilteredRecordGraphEvents()
+                    {
+                        var enabled = RecordGraphFilterPanel.Children.OfType<System.Windows.Controls.CheckBox>()
+                            .Where(c => c.IsChecked == true)
+                            .Select(c => c.Tag?.ToString())
+                            .ToHashSet();
+                        var direction = (RecordGraphDirectionCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "All";
+                        return _recordGraphEvents
+                            .Where(ev => enabled.Contains(ev.Message))
+                            .Where(ev => direction == "All" ||
+                                         (direction == "MBT \u2192 NIRON" && ev.IsOutgoing) ||
+                                         (direction == "NIRON \u2192 MBT" && !ev.IsOutgoing))
+                            .OrderBy(ev => ev.Timestamp)
+                            .ToList();
+                    }
+
+                    /// <summary>Clicking a recorded timeline point selects and scrolls to its row in the
+                    /// Details table; the selection change also decodes the message fields.</summary>
+                    private void FocusRecordGraphEvent(TimelineEvent ev)
+                    {
+                        RecordGraphDetailsGrid.SelectedItem = ev;
+                        RecordGraphDetailsGrid.ScrollIntoView(ev);
+                        RecordGraphDetailsGrid.Focus();
+                        ShowRecordGraphEventFields(ev);
+                    }
+
+                    /// <summary>Draws the Record Graph timeline from the loaded recording.</summary>
+                    private void RedrawRecordTimeline()
+                    {
+                        if (RecordGraphCanvas is null) return;
+                        var events = FilteredRecordGraphEvents();
+                        RecordGraphDetailsGrid.ItemsSource = events;
+                        DrawTimelineCore(RecordGraphCanvas, RecordGraphScroll, events, _recordGraphZoom, FocusRecordGraphEvent);
+                    }
+
+            """);
+        }
+
+        /// <summary>Emits the Statistics tab code-behind: per-message counters and 1 Hz rates.</summary>
+        private static void AppendStatisticsLogic(StringBuilder sb)
+        {
+            sb.Append("""
+                    // ---- Statistics tab: per-message counters and per-second rates ----
+                    private void UpdateStat(string message, int bytes, bool outgoing, bool error = false, bool dropped = false, bool crcError = false)
+                    {
+                        if (!_messageStats.TryGetValue(message, out var stat))
+                            _messageStats[message] = stat = new MessageStat { Name = message };
+                        if (outgoing) { stat.Sent++; stat.BytesSent += bytes; stat.LastSent = DateTime.Now; }
+                        else { stat.Received++; stat.BytesReceived += bytes; stat.LastReceived = DateTime.Now; }
+                        if (error) stat.Errors++;
+                        if (dropped) stat.Dropped++;
+                        if (crcError) stat.CrcErrors++;
+                        stat.TotalBytes += bytes;
+                        stat.WindowCount++;
+                        stat.WindowBytes += bytes;
+                        if (bytes < stat.MinSize) stat.MinSize = bytes;
+                        if (bytes > stat.MaxSize) stat.MaxSize = bytes;
+                    }
+
+                    private void ResetStats_Click(object sender, RoutedEventArgs e)
+                    {
+                        _messageStats.Clear();
+                        _peakMsgRate = 0;
+                        _peakByteRate = 0;
+                        _totalProcessingTicks = 0;
+                        _processedMessages = 0;
+                        _timeoutCount = 0;
+                        _retransmissionCount = 0;
+                        UpdateStatistics();
+                        Log("Statistics reset.");
+                    }
+
+                    private static DateTime? LastActivity(MessageStat s) =>
+                        s.LastReceived is null ? s.LastSent
+                        : s.LastSent is null ? s.LastReceived
+                        : (s.LastReceived > s.LastSent ? s.LastReceived : s.LastSent);
+
+                    /// <summary>Recomputes the per-second rates (1 Hz) and refreshes the Statistics grid.</summary>
+                    private void UpdateStatistics()
+                    {
+                        var now = DateTime.Now;
+                        var elapsed = Math.Max((now - _lastStatsTick).TotalSeconds, 0.001);
+                        _lastStatsTick = now;
+                        foreach (var stat in _messageStats.Values)
+                        {
+                            stat.MsgPerSec = stat.WindowCount / elapsed;
+                            stat.BytesPerSec = stat.WindowBytes / elapsed;
+                            stat.WindowCount = 0;
+                            stat.WindowBytes = 0;
+                        }
+                        var msgRate = _messageStats.Values.Sum(s => s.MsgPerSec);
+                        var byteRate = _messageStats.Values.Sum(s => s.BytesPerSec);
+                        if (msgRate > _peakMsgRate) _peakMsgRate = msgRate;
+                        if (byteRate > _peakByteRate) _peakByteRate = byteRate;
+
+                        // CPU usage of this process since the previous tick (kept accurate even when hidden).
+                        var process = System.Diagnostics.Process.GetCurrentProcess();
+                        var cpuNow = process.TotalProcessorTime;
+                        var cpuPercent = (cpuNow - _lastCpuTime).TotalMilliseconds / (elapsed * 1000.0 * Environment.ProcessorCount) * 100.0;
+                        _lastCpuTime = cpuNow;
+
+                        if (!StatsGrid.IsVisible) return;
+
+                        StatsGrid.ItemsSource = _messageStats.Values
+                            .OrderBy(s => s.Name)
+                            .Select(s => new MessageStatRow
+                            {
+                                Message = s.Name,
+                                Received = s.Received,
+                                Sent = s.Sent,
+                                MsgPerSec = s.MsgPerSec.ToString("0.0"),
+                                BytesPerSec = s.BytesPerSec.ToString("0"),
+                                TotalBytes = s.TotalBytes,
+                                AvgSize = s.Received + s.Sent > 0 ? ((double)s.TotalBytes / (s.Received + s.Sent)).ToString("0.0") : "-",
+                                MinSize = s.MinSize == int.MaxValue ? "-" : s.MinSize.ToString(),
+                                MaxSize = s.MaxSize == 0 ? "-" : s.MaxSize.ToString(),
+                                LastReceived = s.LastReceived?.ToString("HH:mm:ss.fff") ?? "-",
+                                LastSent = s.LastSent?.ToString("HH:mm:ss.fff") ?? "-",
+                                SinceLast = LastActivity(s) is { } last ? (now - last).TotalSeconds.ToString("0.0") : "-",
+                                Errors = s.Errors,
+                                Dropped = s.Dropped
+                            })
+                            .ToList();
+
+                        // Global (whole simulator) statistics.
+                        var totalSent = _messageStats.Values.Sum(s => s.Sent);
+                        var totalReceived = _messageStats.Values.Sum(s => s.Received);
+                        var totalBytesSent = _messageStats.Values.Sum(s => s.BytesSent);
+                        var totalBytesReceived = _messageStats.Values.Sum(s => s.BytesReceived);
+                        var errors = _messageStats.Values.Sum(s => s.Errors);
+                        var crcErrors = _messageStats.Values.Sum(s => s.CrcErrors);
+                        var dropped = _messageStats.Values.Sum(s => s.Dropped);
+                        var running = now - _simStartTime;
+                        var runningText = running.ToString(@"hh\:mm\:ss");
+                        var runSeconds = Math.Max(running.TotalSeconds, 0.001);
+                        var lossPercent = totalReceived > 0 ? dropped * 100.0 / totalReceived : 0.0;
+                        var avgProcessing = _processedMessages > 0
+                            ? $"{_totalProcessingTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / _processedMessages:0.000} ms"
+                            : "-";
+
+                        GlobalStatsGrid.ItemsSource = new List<GlobalStatRow>
+                        {
+                            new("Total Messages Sent", totalSent.ToString("N0")),
+                            new("Total Messages Received", totalReceived.ToString("N0")),
+                            new("Total Bytes Sent", totalBytesSent.ToString("N0")),
+                            new("Total Bytes Received", totalBytesReceived.ToString("N0")),
+                            new("Overall Messages/sec", msgRate.ToString("0.0")),
+                            new("Overall Bytes/sec", byteRate.ToString("N0")),
+                            new("Average Traffic Rate", $"{(totalSent + totalReceived) / runSeconds:0.0} msg/s, {(totalBytesSent + totalBytesReceived) / runSeconds:N0} B/s"),
+                            new("Peak Messages/sec", _peakMsgRate.ToString("0.0")),
+                            new("Peak Bytes/sec", _peakByteRate.ToString("N0")),
+                            new("Simulator Running Time", runningText),
+                            new("CPU Usage", $"{Math.Clamp(cpuPercent, 0.0, 100.0):0.0} %"),
+                            new("Memory Usage", $"{process.WorkingSet64 / (1024.0 * 1024.0):0.0} MB"),
+                            new("Queue Size (timeline buffer)", _timelineEvents.Count.ToString("N0")),
+                            new("Connected Interfaces", (_transport?.ConnectionCount ?? 0).ToString()),
+                            new("Packet Loss", $"{lossPercent:0.0} %"),
+                            new("Error Count", errors.ToString("N0")),
+                            new("CRC Errors", crcErrors.ToString("N0")),
+                            new("Timeout Count", _timeoutCount.ToString("N0")),
+                            new("Retransmissions (periodic repeats)", _retransmissionCount.ToString("N0")),
+                            new("Avg Processing Time / Message", avgProcessing)
+                        };
+
+                        StatsSummaryText.Text = $"Total: {totalSent + totalReceived:N0} message(s), {totalBytesSent + totalBytesReceived:N0} bytes   |   " +
+                            $"Current: {msgRate:0.0} msg/s, {byteRate:N0} B/s   |   Running: {runningText}";
+                    }
+
+            """);
+        }
+
+        /// <summary>The binary message recorder, file format and reader for the generated app.</summary>
+        private static string BuildRecording() => """
+            // Auto-generated by InterfaceWrapper. Do not edit by hand.
+            using System;
+            using System.Collections.Generic;
+            using System.IO;
+
+            namespace GenericSim
+            {
+                /// <summary>One message captured in a recording.</summary>
+                public sealed class RecordedMessage
+                {
+                    public DateTime Timestamp { get; init; }
+                    public bool IsOutgoing { get; init; }
+                    public int MessageId { get; init; }
+                    public byte[] Data { get; init; } = Array.Empty<byte>();
+                }
+
+                /// <summary>Row shown in the Record tab table.</summary>
+                public sealed class RecordedMessageRow
+                {
+                    public int Ordinal { get; set; }
+                    public string Time { get; set; } = string.Empty;
+                    public string Direction { get; set; } = string.Empty;
+                    public string Message { get; set; } = string.Empty;
+                    public int MessageId { get; set; }
+                    public int Bytes { get; set; }
+                    public string Hex { get; set; } = string.Empty;
+                    /// <summary>The raw payload, used to decode the fields when the row is clicked.</summary>
+                    public byte[] Data { get; set; } = Array.Empty<byte>();
+                }
+
+                /// <summary>
+                /// Binary recording format:
+                ///   header  : magic "GSRC" (4 bytes) + version (int32)
+                ///   record  : timestamp ticks (int64), direction (byte: 1=TX 0=RX),
+                ///             message id (int32), payload length (int32), payload bytes.
+                /// </summary>
+                public static class RecordingFile
+                {
+                    public const string Magic = "GSRC";
+                    public const int Version = 1;
+
+                    public static void WriteHeader(BinaryWriter writer)
+                    {
+                        writer.Write(Magic.ToCharArray());
+                        writer.Write(Version);
+                    }
+
+                    public static void WriteRecord(BinaryWriter writer, RecordedMessage record)
+                    {
+                        writer.Write(record.Timestamp.Ticks);
+                        writer.Write(record.IsOutgoing ? (byte)1 : (byte)0);
+                        writer.Write(record.MessageId);
+                        writer.Write(record.Data.Length);
+                        writer.Write(record.Data);
+                    }
+
+                    public static List<RecordedMessage> Load(string path)
+                    {
+                        var records = new List<RecordedMessage>();
+                        using var reader = new BinaryReader(File.OpenRead(path));
+
+                        var magic = new string(reader.ReadChars(4));
+                        if (magic != Magic)
+                            throw new InvalidDataException("Not a GenericSim recording file (bad magic).");
+                        var version = reader.ReadInt32();
+                        if (version != Version)
+                            throw new InvalidDataException($"Unsupported recording version {version}.");
+
+                        while (reader.BaseStream.Position < reader.BaseStream.Length)
+                        {
+                            var ticks = reader.ReadInt64();
+                            var outgoing = reader.ReadByte() == 1;
+                            var messageId = reader.ReadInt32();
+                            var length = reader.ReadInt32();
+                            var data = reader.ReadBytes(length);
+                            records.Add(new RecordedMessage
+                            {
+                                Timestamp = new DateTime(ticks),
+                                IsOutgoing = outgoing,
+                                MessageId = messageId,
+                                Data = data
+                            });
+                        }
+                        return records;
+                    }
+                }
+
+                /// <summary>Streams incoming and outgoing messages into a recording file.</summary>
+                public sealed class MessageRecorder : IDisposable
+                {
+                    private readonly object _sync = new();
+                    private BinaryWriter? _writer;
+                    private string? _path;
+
+                    public bool IsRecording { get { lock (_sync) return _writer is not null; } }
+                    public int RecordedCount { get; private set; }
+
+                    public void Start(string path)
+                    {
+                        lock (_sync)
+                        {
+                            _writer?.Dispose();
+                            _writer = new BinaryWriter(File.Create(path));
+                            _path = path;
+                            RecordedCount = 0;
+                            RecordingFile.WriteHeader(_writer);
+                            _writer.Flush();
+                        }
+                    }
+
+                    /// <summary>Appends one message; safe to call from any thread and a no-op when idle.</summary>
+                    public void Record(bool outgoing, int messageId, byte[] data)
+                    {
+                        lock (_sync)
+                        {
+                            if (_writer is null) return;
+                            RecordingFile.WriteRecord(_writer, new RecordedMessage
+                            {
+                                Timestamp = DateTime.Now,
+                                IsOutgoing = outgoing,
+                                MessageId = messageId,
+                                Data = data
+                            });
+                            _writer.Flush();
+                            RecordedCount++;
+                        }
+                    }
+
+                    /// <summary>Stops recording and returns the file path.</summary>
+                    public string? Stop()
+                    {
+                        lock (_sync)
+                        {
+                            _writer?.Dispose();
+                            _writer = null;
+                            return _path;
+                        }
+                    }
+
+                    public void Dispose() => Stop();
+                }
+            }
+
+            """;
+
+        /// <summary>The scenario step model and the Configuration.xml + JSON folder store.</summary>
+        private static string BuildScenario() => """
+            // Auto-generated by InterfaceWrapper. Do not edit by hand.
+            using System;
+            using System.Collections.Generic;
+            using System.ComponentModel;
+            using System.Globalization;
+            using System.IO;
+            using System.Linq;
+            using System.Text.Json;
+            using System.Xml.Linq;
+
+            namespace GenericSim
+            {
+                /// <summary>One scenario step: a message plus its own asynchronous send attributes.</summary>
+                public sealed class ScenarioStepRow : INotifyPropertyChanged
+                {
+                    private int _index;
+                    private string _message = string.Empty;
+                    private int _timeMs;
+                    private int _periodicIntervalMs = 1000;
+                    private bool _periodic;
+                    private int _maxMessages;
+
+                    /// <summary>The JSON prefix number; also the send order shown in the grid.</summary>
+                    public int Index { get => _index; set { _index = value; OnChanged(nameof(Index)); } }
+                    public string Message { get => _message; set { _message = value; OnChanged(nameof(Message)); } }
+                    /// <summary>Milliseconds from scenario start until the first send.</summary>
+                    public int TimeMs { get => _timeMs; set { _timeMs = value; OnChanged(nameof(TimeMs)); } }
+                    /// <summary>Interval between periodic sends, in milliseconds.</summary>
+                    public int PeriodicIntervalMs { get => _periodicIntervalMs; set { _periodicIntervalMs = value; OnChanged(nameof(PeriodicIntervalMs)); } }
+                    public bool Periodic { get => _periodic; set { _periodic = value; OnChanged(nameof(Periodic)); OnChanged(nameof(SendType)); } }
+                    /// <summary>Number of periodic sends; 0 sends with no limit.</summary>
+                    public int MaxMessages { get => _maxMessages; set { _maxMessages = value; OnChanged(nameof(MaxMessages)); } }
+                    public string SendType => Periodic ? "Periodic" : "One Time";
+                    /// <summary>The message field values saved in the step JSON file.</summary>
+                    public Dictionary<string, string>? FieldValues { get; set; }
+
+                    public event PropertyChangedEventHandler? PropertyChanged;
+                    private void OnChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+                }
+
+                /// <summary>
+                /// Persists a scenario as a folder: Configuration.xml (the Intervals sections) plus one
+                /// "{index}_{message}.json" file per step holding the message field values, e.g.
+                /// "0_STATUS_MESSAGE.json, 1_NONCE_MESSAGE.json".
+                /// </summary>
+                public static class ScenarioStore
+                {
+                    public const string ConfigurationFileName = "Configuration.xml";
+
+                    public static void Save(string folder, IReadOnlyList<ScenarioStepRow> steps)
+                    {
+                        Directory.CreateDirectory(folder);
+
+                        // Remove stale step files so the folder always mirrors the current scenario.
+                        foreach (var file in Directory.GetFiles(folder, "*.json"))
+                        {
+                            var name = Path.GetFileNameWithoutExtension(file);
+                            var underscore = name.IndexOf('_');
+                            if (underscore > 0 && int.TryParse(name[..underscore], out _))
+                                File.Delete(file);
+                        }
+
+                        var root = new XElement("Intervals");
+                        for (int i = 0; i < steps.Count; i++)
+                        {
+                            var step = steps[i];
+                            root.Add(new XElement("section",
+                                new XAttribute("index", i),
+                                new XAttribute("time", step.TimeMs),
+                                new XAttribute("periodicInterval", step.PeriodicIntervalMs),
+                                new XAttribute("periodic", step.Periodic ? "true" : "false"),
+                                new XAttribute("maxMessages", step.MaxMessages)));
+
+                            var json = JsonSerializer.Serialize(
+                                step.FieldValues ?? new Dictionary<string, string>(),
+                                new JsonSerializerOptions { WriteIndented = true });
+                            File.WriteAllText(Path.Combine(folder, $"{i}_{step.Message}.json"), json);
+                        }
+
+                        new XDocument(new XDeclaration("1.0", "utf-8", null), root)
+                            .Save(Path.Combine(folder, ConfigurationFileName));
+                    }
+
+                    public static List<ScenarioStepRow> Load(string folder)
+                    {
+                        var configPath = Path.Combine(folder, ConfigurationFileName);
+                        if (!File.Exists(configPath))
+                            throw new FileNotFoundException($"'{ConfigurationFileName}' was not found in {folder}.");
+
+                        var steps = new List<ScenarioStepRow>();
+                        var root = XDocument.Load(configPath).Root
+                            ?? throw new InvalidDataException("Configuration.xml has no root element.");
+
+                        foreach (var section in root.Elements("section"))
+                        {
+                            var index = ReadInt(section, "index", steps.Count);
+                            var step = new ScenarioStepRow
+                            {
+                                Index = index,
+                                TimeMs = ReadInt(section, "time", 0),
+                                PeriodicIntervalMs = ReadInt(section, "periodicInterval", 0),
+                                Periodic = string.Equals((string?)section.Attribute("periodic"), "true", StringComparison.OrdinalIgnoreCase),
+                                MaxMessages = ReadInt(section, "maxMessages", 0)
+                            };
+
+                            // The JSON file prefixed with the index carries the message name and its values.
+                            var file = Directory.GetFiles(folder, index + "_*.json").FirstOrDefault();
+                            if (file is not null)
+                            {
+                                step.Message = Path.GetFileNameWithoutExtension(file)[(index.ToString().Length + 1)..];
+                                step.FieldValues = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(file));
+                            }
+                            steps.Add(step);
+                        }
+                        return steps;
+                    }
+
+                    private static int ReadInt(XElement element, string attribute, int fallback) =>
+                        int.TryParse((string?)element.Attribute(attribute), NumberStyles.Integer,
+                            CultureInfo.InvariantCulture, out var value) ? value : fallback;
+                }
+            }
+
+            """;
 
         private static string BuildModels()
         {
@@ -847,6 +2846,70 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        public string Field { get; set; } = string.Empty;");
             sb.AppendLine("        public string Value { get; set; } = string.Empty;");
             sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>One point on the Graph tab timeline (a sent or received message).</summary>");
+            sb.AppendLine("    public sealed class TimelineEvent");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public DateTime Timestamp { get; init; }");
+            sb.AppendLine("        public bool IsOutgoing { get; init; }");
+            sb.AppendLine("        public string Message { get; init; } = string.Empty;");
+            sb.AppendLine("        public string Status { get; init; } = string.Empty;");
+            sb.AppendLine("        public string Details { get; init; } = string.Empty;");
+            sb.AppendLine("        /// <summary>The raw message bytes, used to decode the fields when the point is clicked.</summary>");
+            sb.AppendLine("        public byte[] Data { get; init; } = Array.Empty<byte>();");
+            sb.AppendLine("        public string Time => Timestamp.ToString(\"HH:mm:ss.fff\");");
+            sb.AppendLine("        public string Direction => IsOutgoing ? \"MBT \\u2192 NIRON\" : \"NIRON \\u2192 MBT\";");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>Running statistics for one message type (Statistics tab).</summary>");
+            sb.AppendLine("    public sealed class MessageStat");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public string Name { get; init; } = string.Empty;");
+            sb.AppendLine("        public long Received;");
+            sb.AppendLine("        public long Sent;");
+            sb.AppendLine("        public long TotalBytes;");
+            sb.AppendLine("        public long BytesSent;");
+            sb.AppendLine("        public long BytesReceived;");
+            sb.AppendLine("        public long CrcErrors;");
+            sb.AppendLine("        public long Errors;");
+            sb.AppendLine("        public long Dropped;");
+            sb.AppendLine("        public int MinSize = int.MaxValue;");
+            sb.AppendLine("        public int MaxSize;");
+            sb.AppendLine("        public DateTime? LastReceived;");
+            sb.AppendLine("        public DateTime? LastSent;");
+            sb.AppendLine("        /// <summary>Messages/bytes since the last statistics tick (for the 1 s rates).</summary>");
+            sb.AppendLine("        public long WindowCount;");
+            sb.AppendLine("        public long WindowBytes;");
+            sb.AppendLine("        public double MsgPerSec;");
+            sb.AppendLine("        public double BytesPerSec;");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>Row shown in the Statistics tab grid.</summary>");
+            sb.AppendLine("    public sealed class MessageStatRow");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public string Message { get; set; } = string.Empty;");
+            sb.AppendLine("        public long Received { get; set; }");
+            sb.AppendLine("        public long Sent { get; set; }");
+            sb.AppendLine("        public string MsgPerSec { get; set; } = \"0\";");
+            sb.AppendLine("        public string BytesPerSec { get; set; } = \"0\";");
+            sb.AppendLine("        public long TotalBytes { get; set; }");
+            sb.AppendLine("        public string AvgSize { get; set; } = \"-\";");
+            sb.AppendLine("        public string MinSize { get; set; } = \"-\";");
+            sb.AppendLine("        public string MaxSize { get; set; } = \"-\";");
+            sb.AppendLine("        public string LastReceived { get; set; } = \"-\";");
+            sb.AppendLine("        public string LastSent { get; set; } = \"-\";");
+            sb.AppendLine("        public string SinceLast { get; set; } = \"-\";");
+            sb.AppendLine("        public long Errors { get; set; }");
+            sb.AppendLine("        public long Dropped { get; set; }");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>One row of the Global Statistics table (Statistics tab).</summary>");
+            sb.AppendLine("    public sealed class GlobalStatRow");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public GlobalStatRow(string statistic, string value) { Statistic = statistic; Value = value; }");
+            sb.AppendLine("        public string Statistic { get; }");
+            sb.AppendLine("        public string Value { get; }");
+            sb.AppendLine("    }");
             sb.AppendLine("}");
             return sb.ToString();
         }
@@ -869,6 +2932,8 @@ namespace InterfaceWrapper.Services
                 public interface ITransport : IDisposable
                 {
                     string Description { get; }
+                    /// <summary>Number of connected peers (TCP server: clients; others: 1 when open).</summary>
+                    int ConnectionCount { get; }
                     void Start();
                     void Send(byte[] data);
                     event Action<byte[], string>? DataReceived;
@@ -891,6 +2956,7 @@ namespace InterfaceWrapper.Services
                     }
 
                     public string Description => $"UDP local {_localPort} -> {_remoteIp}:{_remotePort}";
+                    public int ConnectionCount => _udp is null ? 0 : 1;
                     public event Action<byte[], string>? DataReceived;
                     public event Action<string>? StatusChanged;
 
@@ -938,6 +3004,7 @@ namespace InterfaceWrapper.Services
                     private TcpClient? _client;
                     private NetworkStream? _stream;
                     private CancellationTokenSource? _cts;
+                    private readonly object _writeLock = new();
 
                     public TcpClientTransport(string remoteIp, int remotePort)
                     {
@@ -946,6 +3013,7 @@ namespace InterfaceWrapper.Services
                     }
 
                     public string Description => $"TCP client -> {_remoteIp}:{_remotePort}";
+                    public int ConnectionCount => _client?.Connected == true ? 1 : 0;
                     public event Action<byte[], string>? DataReceived;
                     public event Action<string>? StatusChanged;
 
@@ -962,7 +3030,8 @@ namespace InterfaceWrapper.Services
                     public void Send(byte[] data)
                     {
                         var stream = _stream ?? throw new InvalidOperationException("TCP is not connected.");
-                        stream.Write(data, 0, data.Length);
+                        // Serialize writes: periodic sends may arrive from several timer threads.
+                        lock (_writeLock) stream.Write(data, 0, data.Length);
                     }
 
                     private async Task ReceiveLoopAsync(NetworkStream stream, string from, CancellationToken token)
@@ -995,6 +3064,7 @@ namespace InterfaceWrapper.Services
                 {
                     private readonly int _localPort;
                     private readonly object _sync = new();
+                    private readonly object _writeLock = new();
                     private readonly List<TcpClient> _clients = new();
                     private TcpListener? _listener;
                     private CancellationTokenSource? _cts;
@@ -1002,6 +3072,7 @@ namespace InterfaceWrapper.Services
                     public TcpServerTransport(int localPort) => _localPort = localPort;
 
                     public string Description => $"TCP server on port {_localPort}";
+                    public int ConnectionCount { get { lock (_sync) return _clients.Count; } }
                     public event Action<byte[], string>? DataReceived;
                     public event Action<string>? StatusChanged;
 
@@ -1018,10 +3089,14 @@ namespace InterfaceWrapper.Services
                         List<TcpClient> clients;
                         lock (_sync) clients = _clients.ToList();
                         if (clients.Count == 0) throw new InvalidOperationException("No TCP client is connected.");
-                        foreach (var client in clients)
+                        // Serialize writes: periodic sends may arrive from several timer threads.
+                        lock (_writeLock)
                         {
-                            try { client.GetStream().Write(data, 0, data.Length); }
-                            catch (Exception ex) { StatusChanged?.Invoke("TCP TX error: " + ex.Message); }
+                            foreach (var client in clients)
+                            {
+                                try { client.GetStream().Write(data, 0, data.Length); }
+                                catch (Exception ex) { StatusChanged?.Invoke("TCP TX error: " + ex.Message); }
+                            }
                         }
                     }
 
@@ -1083,6 +3158,7 @@ namespace InterfaceWrapper.Services
                     private readonly Parity _parity;
                     private readonly StopBits _stopBits;
                     private SerialPort? _port;
+                    private readonly object _writeLock = new();
 
                     public SerialTransport(string portName, int baudRate, Parity parity = Parity.None, StopBits stopBits = StopBits.One)
                     {
@@ -1093,6 +3169,7 @@ namespace InterfaceWrapper.Services
                     }
 
                     public string Description => $"RS232 {_portName} @ {_baudRate} baud, {_parity} parity, {_stopBits} stop bits";
+                    public int ConnectionCount => _port?.IsOpen == true ? 1 : 0;
                     public event Action<byte[], string>? DataReceived;
                     public event Action<string>? StatusChanged;
 
@@ -1106,7 +3183,8 @@ namespace InterfaceWrapper.Services
                     public void Send(byte[] data)
                     {
                         var port = _port ?? throw new InvalidOperationException("RS232 port is not open.");
-                        port.Write(data, 0, data.Length);
+                        // Serialize writes: periodic sends may arrive from several timer threads.
+                        lock (_writeLock) port.Write(data, 0, data.Length);
                     }
 
                     private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
@@ -1135,6 +3213,87 @@ namespace InterfaceWrapper.Services
                             port.Dispose();
                         }
                     }
+                }
+            }
+
+            """;
+
+        /// <summary>The 1 ms clock helper and the drift-free precision timer used for
+        /// millisecond-accurate periodic sending (e.g. every 10 ms).</summary>
+        private static string BuildPrecisionTimer() => """
+            // Auto-generated by InterfaceWrapper. Do not edit by hand.
+            using System;
+            using System.Diagnostics;
+            using System.Runtime.InteropServices;
+            using System.Threading;
+
+            namespace GenericSim
+            {
+                /// <summary>Raises the Windows timer resolution to 1 ms while enabled so short
+                /// sleeps (and therefore fast periodic sends) fire on time.</summary>
+                public static class HighResClock
+                {
+                    [DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")] private static extern uint TimeBeginPeriod(uint ms);
+                    [DllImport("winmm.dll", EntryPoint = "timeEndPeriod")] private static extern uint TimeEndPeriod(uint ms);
+                    private static int _enabled;
+
+                    public static void Enable() { if (Interlocked.Exchange(ref _enabled, 1) == 0) TimeBeginPeriod(1); }
+                    public static void Disable() { if (Interlocked.Exchange(ref _enabled, 0) == 1) TimeEndPeriod(1); }
+                }
+
+                /// <summary>
+                /// Drift-free periodic timer on a dedicated high-priority background thread.
+                /// It sleeps for the bulk of each interval and spin-waits the last ~2 ms, giving
+                /// millisecond cadence accuracy for intervals as small as a few ms (e.g. 10 ms).
+                /// Ticks are scheduled on an absolute timeline (next += interval), so one late
+                /// tick does not shift the following ones. The callback runs on the timer
+                /// thread and must be thread-safe.
+                /// </summary>
+                public sealed class PrecisionTimer : IDisposable
+                {
+                    private readonly double _intervalMs;
+                    private readonly Action _tick;
+                    private volatile bool _running = true;
+
+                    public PrecisionTimer(double intervalMs, Action tick)
+                    {
+                        _intervalMs = Math.Max(1.0, intervalMs);
+                        _tick = tick ?? throw new ArgumentNullException(nameof(tick));
+                        HighResClock.Enable();
+                        var thread = new Thread(Loop) { IsBackground = true, Priority = ThreadPriority.Highest, Name = "PrecisionTimer" };
+                        thread.Start();
+                    }
+
+                    private void Loop()
+                    {
+                        var clock = Stopwatch.StartNew();
+                        double next = _intervalMs;
+                        while (_running)
+                        {
+                            double remaining = next - clock.Elapsed.TotalMilliseconds;
+                            if (remaining > 4.0)
+                            {
+                                // Coarse wait: sleep almost all of the remaining time (1 ms resolution).
+                                Thread.Sleep((int)(remaining - 2.0));
+                            }
+                            else if (remaining > 0.05)
+                            {
+                                // Fine wait: spin the last ~2 ms for sub-millisecond accuracy.
+                                Thread.SpinWait(250);
+                            }
+                            else
+                            {
+                                try { _tick(); }
+                                catch { /* never break the cadence */ }
+                                next += _intervalMs;
+                                // After a long stall (breakpoint, suspend) resync instead of bursting.
+                                if (next < clock.Elapsed.TotalMilliseconds - _intervalMs)
+                                    next = clock.Elapsed.TotalMilliseconds + _intervalMs;
+                            }
+                        }
+                    }
+
+                    public void Dispose() => _running = false;
                 }
             }
 
@@ -1249,6 +3408,48 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("- Transport settings in the top bar (ports, IP, TCP mode, COM port, baud rate, parity, stop bits).");
             sb.AppendLine("- Periodic send (interval + count), send history, NIRON\u2192MBT monitor and traffic log.");
             sb.AppendLine("- Export/Import message field values as JSON.");
+            sb.AppendLine("- Scenario tab: drag messages from 'All Messages' into an ordered step list,");
+            sb.AppendLine("  set per-step attributes (one time / periodic, start time, interval, max count)");
+            sb.AppendLine("  and run all steps in parallel. A scenario is stored in its own folder as");
+            sb.AppendLine("  `Configuration.xml` plus one `{index}_{message}.json` file per step.");
+            sb.AppendLine("- Record button: captures every incoming and outgoing message to a binary `.bin`");
+            sb.AppendLine("  file. The Record tab opens such a file, lists the message types on the left,");
+            sb.AppendLine("  shows every recorded message of the selected type in the table and decodes");
+            sb.AppendLine("  all the fields of the message clicked in the table. 'Export Type (CSV)' writes");
+            sb.AppendLine("  the selected type to a CSV file: one column per field, one row per recorded");
+            sb.AppendLine("  message (6 received messages of a type produce 6 rows).");
+            sb.AppendLine("- Graph tab: live message timeline with a TX lane (MBT \u2192 NIRON) and an RX lane");
+            sb.AppendLine("  (NIRON \u2192 MBT), per-message filter checkboxes (each showing the live number of");
+            sb.AppendLine("  sent/received messages of that type), zoom in/out (timeline header");
+            sb.AppendLine("  buttons, View Options or Ctrl+mouse wheel), direction / pause options");
+            sb.AppendLine("  and a details table showing when every message arrived. Clicking a point on the");
+            sb.AppendLine("  timeline focuses its row in the details table and decodes all the fields of that");
+            sb.AppendLine("  message (clicking a details row decodes it as well). Under heavy traffic the");
+            sb.AppendLine("  graph repaints at most ~3 times per second and draws only the newest events,");
+            sb.AppendLine("  so the UI stays responsive.");
+            sb.AppendLine("- Record Graph tab: opens a recording `.bin` file (captured with the Record");
+            sb.AppendLine("  button) and displays it on the same two-lane timeline as the Graph tab, with");
+            sb.AppendLine("  per-type filter checkboxes (each showing how many messages of that type are");
+            sb.AppendLine("  in the file), zoom / direction options, a details table and");
+            sb.AppendLine("  full field decoding; clicking a timeline point focuses its row in the");
+            sb.AppendLine("  details table.");
+            sb.AppendLine("- Statistics tab: a Global Statistics panel (total messages/bytes sent and");
+            sb.AppendLine("  received, current and peak messages/sec and bytes/sec, average traffic rate,");
+            sb.AppendLine("  running time, CPU and memory usage, queue size, connected interfaces, packet");
+            sb.AppendLine("  loss, error / CRC / timeout / retransmission counters and average processing");
+            sb.AppendLine("  time per message) next to a per-message table with totals (received/sent),");
+            sb.AppendLine("  the current rates (messages per second and bytes per second), total bytes,");
+            sb.AppendLine("  average / minimum / maximum message size, last RX/TX timestamps, seconds");
+            sb.AppendLine("  since the last message, receive errors and dropped (unknown id) messages;");
+            sb.AppendLine("  refreshed every second, with a totals summary line and a reset button.");
+            sb.AppendLine("- Look & Feel selector in the header: Dark Blue (default), Midnight Black,");
+            sb.AppendLine("  Light and Military Green themes; the whole UI (panels, tables, graphs)");
+            sb.AppendLine("  restyles instantly.");
+            sb.AppendLine("- Precision timing: periodic sends (Simulator tab and scenario steps) run on");
+            sb.AppendLine("  dedicated high-priority PrecisionTimer threads with 1 ms Windows timer");
+            sb.AppendLine("  resolution and drift-free absolute scheduling, so intervals as small as");
+            sb.AppendLine("  10 ms are accurate. The receive path records on the transport thread and");
+            sb.AppendLine("  never blocks on the UI, so fast incoming rates stay accurate too.");
             return sb.ToString();
         }
 

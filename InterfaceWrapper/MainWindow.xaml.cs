@@ -49,14 +49,20 @@ namespace InterfaceWrapper
                 foreach (var line in _parseResult.Log)
                     AppendLog(line);
 
-                MessagesGrid.ItemsSource = _parseResult.Messages;
+                // Left list shows the message names; selecting one shows all its fields.
+                MessageListBox.ItemsSource = _parseResult.Messages;
+                if (_parseResult.Messages.Count > 0)
+                    MessageListBox.SelectedIndex = 0;
                 GenerateButton.IsEnabled = _parseResult.Messages.Count > 0;
                 StatusText.Text = $"Loaded {_parseResult.Messages.Count} message(s) from '{Path.GetFileName(_messagesFolder)}'.";
             }
             catch (Exception ex)
             {
                 _parseResult = null;
-                MessagesGrid.ItemsSource = null;
+                MessageListBox.ItemsSource = null;
+                FieldsGrid.ItemsSource = null;
+                FieldsHeaderText.Text = "Fields (select a message)";
+                MessageSummaryText.Text = "Message Id: -   Length: -   Directions: -";
                 GenerateButton.IsEnabled = false;
                 GenerateUiButton.IsEnabled = false;
                 AppendLog("ERROR: " + ex.Message);
@@ -117,7 +123,9 @@ namespace InterfaceWrapper
 
             try
             {
-                var simGenerator = new GenericSimGenerator(_parseResult);
+                var source = UseSourceCheck.IsChecked == true ? SourceNameBox.Text : "MBT";
+                var destination = UseDestinationCheck.IsChecked == true ? DestinationNameBox.Text : "NIRON";
+                var simGenerator = new GenericSimGenerator(_parseResult, source, destination);
                 IReadOnlyList<string> written = simGenerator.Generate(_solutionRoot);
 
                 var slnPath = new SolutionGenerator().Generate(_solutionRoot);
@@ -126,6 +134,7 @@ namespace InterfaceWrapper
                 OpenOutputButton.IsEnabled = true;
 
                 AppendLog(string.Empty);
+                AppendLog($"Side names: source '{source}', destination '{destination}'.");
                 AppendLog($"Generated '{GenericSimGenerator.ProjectName}' project ({written.Count} file(s)):");
                 foreach (var file in written)
                     AppendLog("  " + file);
@@ -143,6 +152,24 @@ namespace InterfaceWrapper
                 StatusText.Text = "UI generation failed.";
                 MessageBox.Show(this, ex.Message, "Generate UI", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>Shows all the fields of the message selected in the left list.</summary>
+        private void MessageListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (MessageListBox.SelectedItem is not MessageDefinition msg)
+            {
+                FieldsGrid.ItemsSource = null;
+                FieldsHeaderText.Text = "Fields (select a message)";
+                MessageSummaryText.Text = "Message Id: -   Length: -   Directions: -";
+                return;
+            }
+
+            FieldsGrid.ItemsSource = msg.Fields;
+            FieldsHeaderText.Text = $"Fields of {msg.MessageName} ({msg.Fields.Count})";
+            MessageSummaryText.Text =
+                $"Message Id: {msg.MessageIdDisplay}   Length: {msg.Length} bytes   Directions: {msg.Directions}   " +
+                $"Physical Type: {msg.PhysicalType}   Global Variable: {msg.GlobalVariable}";
         }
 
         private void OpenOutputButton_Click(object sender, RoutedEventArgs e)

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:InterfaceWrapper"
         mc:Ignorable="d"
-        Title="Interface Wrapper - C to C# Generator" Height="560" Width="920">
+        Title="Interface Wrapper - C to C# Generator" Height="560" Width="1150">
     <Grid Margin="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -20,7 +20,19 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
             <Button x:Name="LoadCFilesButton" Content="Load C files" Width="120" Height="30"
                     Click="LoadCFilesButton_Click" />
-            <Button x:Name="GenerateButton" Content="Generate Wrapper" Width="150" Height="30" Margin="8,0,0,0"
+            <!-- Source/Destination are used when generating the simulator UI to replace the
+                 default side names (MBT/NIRON) in titles, labels, directions and graph lanes. -->
+            <TextBlock Text="Source:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <TextBox x:Name="SourceNameBox" Text="MBT" Width="90" Height="26" VerticalContentAlignment="Center"
+                     ToolTip="The name of my side in the generated simulator" />
+            <CheckBox x:Name="UseSourceCheck" Content="Apply" IsChecked="True" VerticalAlignment="Center" Margin="4,0,0,0"
+                      ToolTip="Replace 'MBT' with the Source name in the generated code" />
+            <TextBlock Text="Destination:" VerticalAlignment="Center" Margin="10,0,4,0" />
+            <TextBox x:Name="DestinationNameBox" Text="NIRON" Width="90" Height="26" VerticalContentAlignment="Center"
+                     ToolTip="The name of the other side in the generated simulator" />
+            <CheckBox x:Name="UseDestinationCheck" Content="Apply" IsChecked="True" VerticalAlignment="Center" Margin="4,0,0,0"
+                      ToolTip="Replace 'NIRON' with the Destination name in the generated code" />
+            <Button x:Name="GenerateButton" Content="Generate Wrapper" Width="150" Height="30" Margin="12,0,0,0"
                     IsEnabled="False" Click="GenerateButton_Click" />
             <Button x:Name="GenerateUiButton" Content="Generate UI" Width="130" Height="30" Margin="8,0,0,0"
                     IsEnabled="False" Click="GenerateUiButton_Click" />
@@ -34,22 +46,48 @@
             <Run x:Name="FolderPathRun" Text="(none selected)" />
         </TextBlock>
 
-        <!-- Discovered messages -->
-        <DataGrid Grid.Row="2" x:Name="MessagesGrid" AutoGenerateColumns="False" IsReadOnly="True"
-                  CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal">
-            <DataGrid.ColumnHeaderStyle>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Foreground" Value="Black" />
-                </Style>
-            </DataGrid.ColumnHeaderStyle>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Message" Binding="{Binding MessageName}" Width="2*" />
-                <DataGridTextColumn Header="Msg Id" Binding="{Binding MessageIdDisplay}" Width="0.7*" />
-                <DataGridTextColumn Header="Physical Type" Binding="{Binding PhysicalType}" Width="2*" />
-                <DataGridTextColumn Header="Directions" Binding="{Binding Directions}" Width="1.5*" />
-                <DataGridTextColumn Header="Global Variable" Binding="{Binding GlobalVariable}" Width="2*" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Discovered messages: names on the left, fields of the selected message in the middle -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: message names -->
+            <GroupBox Grid.Column="0" Header="Messages">
+                <ListBox x:Name="MessageListBox" DisplayMemberPath="MessageName"
+                         SelectionChanged="MessageListBox_SelectionChanged" />
+            </GroupBox>
+
+            <!-- Middle: all the fields of the selected message -->
+            <GroupBox Grid.Column="1" Margin="8,0,0,0">
+                <GroupBox.Header>
+                    <TextBlock x:Name="FieldsHeaderText" Text="Fields (select a message)" FontWeight="Bold" />
+                </GroupBox.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="MessageSummaryText" Grid.Row="0" Margin="2,0,0,6" TextWrapping="Wrap"
+                               Foreground="DimGray" Text="Message Id: -   Length: -   Directions: -" />
+                    <DataGrid Grid.Row="1" x:Name="FieldsGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                              CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Foreground" Value="Black" />
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" Width="80" />
+                            <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="3*" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="*" />
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="80" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </GroupBox>
+        </Grid>
 
         <!-- Log header -->
         <TextBlock Grid.Row="3" Text="Log" FontWeight="Bold" Margin="0,8,0,4" />
