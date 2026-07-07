@@ -64,6 +64,25 @@ namespace InterfaceWrapper.Services
             @"\(\s*\*\s*\(\s*(?<bt>Adi\w+)\s*\*\s*\)\s*\(\s*intfPtr\s*\+\s*(?<off>\d+)\s*\)\s*\)\s*=\s*\(\s*Adi\w+\s*\)\s*\(\s*phsPtr->(?<field>[A-Za-z_][\w\.]*)\s*\)",
             RegexOptions.Compiled);
 
+        // The header of an array convert loop, e.g.
+        //   for (i1 = 0; i1 < 256 && (i1 < phsPtr->DT_SET_DISC.discNum); i1++, locationOffset1+= 2)
+        // Captures the index var, the fixed max bound, the (optional) count field and the stride.
+        private static readonly Regex ArrayLoopRegex = new(
+            @"for\s*\(\s*(?<idx>\w+)\s*=\s*0\s*;\s*\k<idx>\s*<\s*(?<max>\d+)\s*(?:&&\s*\(\s*\k<idx>\s*<\s*(?:phsPtr->(?<count>[A-Za-z_][\w\.]*)|\d+)\s*\))?\s*;\s*\k<idx>\+\+\s*,\s*(?<loc>\w+)\s*\+=\s*(?<stride>\d+)\s*\)",
+            RegexOptions.Compiled);
+
+        // An array element written with an align helper, e.g.
+        //   set_ushort_align((intfPtr + 30 + locationOffset1), (AdiUInt16)(phsPtr->...[i1].unitRevision));
+        private static readonly Regex ArrayAlignElementRegex = new(
+            @"set_(?<fn>\w+)_align\s*\(\s*\(?\s*intfPtr\s*\+\s*(?<off>\d+)\s*\+\s*(?<loc>\w+)\s*\)?\s*,\s*\(\s*Adi\w+\s*\)\s*\(\s*phsPtr->(?<field>[A-Za-z_][\w\.\[\]]*)\s*\)",
+            RegexOptions.Compiled);
+
+        // An array element written directly, e.g.
+        //   (*(AdiUInt8 *)(intfPtr + 25 + locationOffset1)) = (AdiUInt8)(phsPtr->...[i1].discreteId);
+        private static readonly Regex ArrayByteElementRegex = new(
+            @"\(\s*\*\s*\(\s*(?<bt>Adi\w+)\s*\*\s*\)\s*\(\s*intfPtr\s*\+\s*(?<off>\d+)\s*\+\s*(?<loc>\w+)\s*\)\s*\)\s*=\s*\(\s*Adi\w+\s*\)\s*\(\s*phsPtr->(?<field>[A-Za-z_][\w\.\[\]]*)\s*\)",
+            RegexOptions.Compiled);
+
         /// <summary>Maps a <c>set_*_align</c> helper name to a UI type name and byte size.</summary>
         private static readonly Dictionary<string, (string Type, int Size)> AlignTypeMap = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -262,6 +281,7 @@ namespace InterfaceWrapper.Services
                         continue;
 
                     ParseFieldsFromBody(body, def);
+                    ParseArraysFromBody(body, def);
                 }
             }
 
@@ -273,7 +293,8 @@ namespace InterfaceWrapper.Services
                 def.Fields.Sort((a, b) => a.Offset.CompareTo(b.Offset));
                 var last = def.Fields[^1];
                 def.Length = last.Offset + last.Size;
-                result.Log.Add($"  {def.MessageName}: {def.Fields.Count} field(s), length {def.Length} bytes.");
+                var arrayNote = def.Arrays.Count > 0 ? $", {def.Arrays.Count} array(s)" : string.Empty;
+                result.Log.Add($"  {def.MessageName}: {def.Fields.Count} field(s){arrayNote}, length {def.Length} bytes.");
             }
         }
 
@@ -309,6 +330,96 @@ namespace InterfaceWrapper.Services
                 Type = type,
                 Size = size
             });
+        }
+
+        /// <summary>
+        /// Parses every array convert loop in the function body. For each loop it records the
+        /// base offset, the stride (bytes per element), the maximum element count, the optional
+        /// count field and each element sub-field (relative offset/type/size), so the UI can
+        /// offer an editable cell per element.
+        /// </summary>
+        private static void ParseArraysFromBody(string body, MessageDefinition def)
+        {
+            foreach (Match loop in ArrayLoopRegex.Matches(body))
+            {
+                var indexVar = loop.Groups["idx"].Value;
+                var stride = int.Parse(loop.Groups["stride"].Value);
+                var maxCount = int.Parse(loop.Groups["max"].Value);
+                var locVar = loop.Groups["loc"].Value;
+
+                var innerBody = ExtractFunctionBody(body, loop.Index + loop.Length);
+                if (innerBody is null)
+                    continue;
+
+                var array = new MessageArray
+                {
+                    Stride = stride,
+                    MaxCount = maxCount,
+                    IndexVar = indexVar,
+                    CountField = loop.Groups["count"].Success ? loop.Groups["count"].Value : null
+                };
+
+                var seen = new HashSet<int>();
+                var minBase = int.MaxValue;
+
+                foreach (Match m in ArrayAlignElementRegex.Matches(innerBody))
+                {
+                    if (!string.Equals(m.Groups["loc"].Value, locVar, StringComparison.Ordinal)) continue;
+                    if (!AlignTypeMap.TryGetValue(m.Groups["fn"].Value, out var info)) continue;
+                    AddArrayElement(array, seen, int.Parse(m.Groups["off"].Value), m.Groups["field"].Value, info.Type, info.Size, indexVar, ref minBase);
+                }
+
+                foreach (Match m in ArrayByteElementRegex.Matches(innerBody))
+                {
+                    if (!string.Equals(m.Groups["loc"].Value, locVar, StringComparison.Ordinal)) continue;
+                    if (!ByteTypeMap.TryGetValue(m.Groups["bt"].Value, out var info)) info = ("UINT8", 1);
+                    AddArrayElement(array, seen, int.Parse(m.Groups["off"].Value), m.Groups["field"].Value, info.Type, info.Size, indexVar, ref minBase);
+                }
+
+                if (array.Elements.Count == 0)
+                    continue;
+
+                // Offsets in the C body are absolute for index 0; normalize them relative to the
+                // first element so a cell's absolute offset is BaseOffset + index * Stride + rel.
+                array.BaseOffset = minBase;
+                foreach (var element in array.Elements)
+                    element.RelativeOffset -= minBase;
+                array.Elements.Sort((a, b) => a.RelativeOffset.CompareTo(b.RelativeOffset));
+                array.Name = DeriveArrayName(array.Elements[0].Field, indexVar);
+
+                def.Arrays.Add(array);
+            }
+
+            def.Arrays.Sort((a, b) => a.BaseOffset.CompareTo(b.BaseOffset));
+        }
+
+        private static void AddArrayElement(
+            MessageArray array, HashSet<int> seen, int offset, string field, string type, int size,
+            string indexVar, ref int minBase)
+        {
+            if (!seen.Add(offset))
+                return;
+            if (offset < minBase)
+                minBase = offset;
+            array.Elements.Add(new MessageArrayElement
+            {
+                RelativeOffset = offset,
+                Field = field,
+                Type = type,
+                Size = size
+            });
+        }
+
+        /// <summary>
+        /// Derives the array path (without the index) from an element field such as
+        /// <c>DT_SET_DISC.discretes[i1].discreteId</c> =&gt; <c>DT_SET_DISC.discretes</c>, or
+        /// <c>DT_LOG.logStr.data[i1]</c> =&gt; <c>DT_LOG.logStr.data</c>.
+        /// </summary>
+        private static string DeriveArrayName(string elementField, string indexVar)
+        {
+            var token = "[" + indexVar + "]";
+            var cut = elementField.IndexOf(token, StringComparison.Ordinal);
+            return cut < 0 ? elementField : elementField[..cut];
         }
 
         /// <summary>

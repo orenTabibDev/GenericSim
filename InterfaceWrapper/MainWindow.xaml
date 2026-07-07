@@ -46,11 +46,13 @@
             <Run x:Name="FolderPathRun" Text="(none selected)" />
         </TextBlock>
 
-        <!-- Discovered messages: names on the left, fields of the selected message in the middle -->
+        <!-- Discovered messages: names on the left, fields of the selected message in the middle,
+             editable array cells on the right -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="300" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="420" />
             </Grid.ColumnDefinitions>
 
             <!-- Left: message names -->
@@ -59,7 +61,7 @@
                          SelectionChanged="MessageListBox_SelectionChanged" />
             </GroupBox>
 
-            <!-- Middle: all the fields of the selected message -->
+            <!-- Middle: all the scalar fields of the selected message -->
             <GroupBox Grid.Column="1" Margin="8,0,0,0">
                 <GroupBox.Header>
                     <TextBlock x:Name="FieldsHeaderText" Text="Fields (select a message)" FontWeight="Bold" />
@@ -83,6 +85,49 @@
                             <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="3*" />
                             <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="*" />
                             <DataGridTextColumn Header="Size" Binding="{Binding Size}" Width="80" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </GroupBox>
+
+            <!-- Right: array editor - pick an array, set the element count, edit each cell -->
+            <GroupBox Grid.Column="2" Margin="8,0,0,0">
+                <GroupBox.Header>
+                    <TextBlock x:Name="ArraysHeaderText" Text="Arrays" FontWeight="Bold" />
+                </GroupBox.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <ComboBox Grid.Row="0" x:Name="ArraysCombo" DisplayMemberPath="Display" Margin="0,0,0,6"
+                              SelectionChanged="ArraysCombo_SelectionChanged" />
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="Elements" VerticalAlignment="Center" />
+                        <TextBox x:Name="ArrayCountBox" Width="70" Margin="6,0,0,0" Text="0"
+                                 PreviewTextInput="ArrayCountBox_PreviewTextInput" />
+                        <Button x:Name="ApplyArrayCountButton" Content="Apply" Width="60" Margin="6,0,0,0"
+                                Click="ApplyArrayCount_Click" />
+                        <TextBlock x:Name="ArrayInfoText" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   Foreground="DimGray" Text="(select an array)" />
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="2" x:Name="ArrayCellsGrid" AutoGenerateColumns="False"
+                              CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Foreground" Value="Black" />
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Idx" Binding="{Binding Index}" IsReadOnly="True" Width="46" />
+                            <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" IsReadOnly="True" Width="60" />
+                            <DataGridTextColumn Header="Field" Binding="{Binding Field}" IsReadOnly="True" Width="2*" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="70" />
+                            <DataGridTextColumn Header="Value" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Width="*" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

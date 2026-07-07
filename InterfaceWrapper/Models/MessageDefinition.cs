@@ -29,6 +29,12 @@ namespace InterfaceWrapper.Models
         /// <summary>The scalar fields (offset/type/size) discovered for the message layout.</summary>
         public List<MessageField> Fields { get; } = new();
 
+        /// <summary>The array fields (repeated element blocks) discovered in the convert loops.</summary>
+        public List<MessageArray> Arrays { get; } = new();
+
+        /// <summary>True when the message contains at least one editable array field.</summary>
+        public bool HasArrays => Arrays.Count > 0;
+
         /// <summary>The total message length in bytes, derived from the field layout.</summary>
         public int Length { get; set; }
 

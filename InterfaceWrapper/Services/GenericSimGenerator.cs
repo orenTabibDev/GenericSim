@@ -337,6 +337,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
             sb.AppendLine("                        <RowDefinition Height=\"*\"/>");
             sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
             sb.AppendLine("                    </Grid.RowDefinitions>");
             sb.AppendLine("                    <TextBlock x:Name=\"MessageInfoText\" Grid.Row=\"0\" Text=\"Message Id: -   Length: - bytes\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
             sb.AppendLine("                    <DataGrid x:Name=\"FieldsGrid\" Grid.Row=\"1\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\">");
@@ -348,7 +349,31 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                            <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value, UpdateSourceTrigger=PropertyChanged}\" Width=\"*\"/>");
             sb.AppendLine("                        </DataGrid.Columns>");
             sb.AppendLine("                    </DataGrid>");
-            sb.AppendLine("                    <Grid Grid.Row=\"2\">");
+            sb.AppendLine("                    <GroupBox x:Name=\"ArraysGroup\" Grid.Row=\"2\" Header=\"Arrays (edit each cell before sending)\" Visibility=\"Collapsed\" Margin=\"0,6,0,0\">");
+            sb.AppendLine("                        <Grid>");
+            sb.AppendLine("                            <Grid.RowDefinitions>");
+            sb.AppendLine("                                <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                                <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                            </Grid.RowDefinitions>");
+            sb.AppendLine("                            <StackPanel Grid.Row=\"0\" Orientation=\"Horizontal\" Margin=\"0,0,0,4\">");
+            sb.AppendLine("                                <ComboBox x:Name=\"ArraysCombo\" Width=\"240\" DisplayMemberPath=\"Display\" SelectionChanged=\"ArraysCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                <TextBlock Text=\"Elements\" VerticalAlignment=\"Center\" Margin=\"10,0,4,0\"/>");
+            sb.AppendLine("                                <TextBox x:Name=\"ArrayCountBox\" Width=\"60\" Text=\"0\" PreviewTextInput=\"ArrayCountBox_PreviewTextInput\"/>");
+            sb.AppendLine("                                <Button x:Name=\"ApplyArrayCountButton\" Content=\"Apply\" Width=\"60\" Margin=\"6,0,0,0\" Click=\"ApplyArrayCount_Click\"/>");
+            sb.AppendLine("                                <TextBlock x:Name=\"ArrayInfoText\" VerticalAlignment=\"Center\" Margin=\"10,0,0,0\" Foreground=\"#7A8CA0\" Text=\"(select an array)\"/>");
+            sb.AppendLine("                            </StackPanel>");
+            sb.AppendLine("                            <DataGrid x:Name=\"ArrayCellsGrid\" Grid.Row=\"1\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" MaxHeight=\"170\">");
+            sb.AppendLine("                                <DataGrid.Columns>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Idx\" Binding=\"{Binding Index}\" IsReadOnly=\"True\" Width=\"46\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" IsReadOnly=\"True\" Width=\"60\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
+            sb.AppendLine("                                    <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value, UpdateSourceTrigger=PropertyChanged}\" Width=\"*\"/>");
+            sb.AppendLine("                                </DataGrid.Columns>");
+            sb.AppendLine("                            </DataGrid>");
+            sb.AppendLine("                        </Grid>");
+            sb.AppendLine("                    </GroupBox>");
+            sb.AppendLine("                    <Grid Grid.Row=\"3\">");
             sb.AppendLine("                        <Grid.ColumnDefinitions>");
             sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
             sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
@@ -503,6 +528,20 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                        <GroupBox Grid.Column=\"0\" Header=\"All Messages\">");
             sb.AppendLine("                            <DockPanel>");
             sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag a message to the scenario (or double-click)\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <StackPanel DockPanel.Dock=\"Bottom\" Margin=\"0,6,0,0\">");
+            sb.AppendLine("                                    <TextBlock Text=\"Operations (drag into the scenario, or double-click)\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,4\"/>");
+            sb.AppendLine("                                    <StackPanel Orientation=\"Horizontal\">");
+            sb.AppendLine("                                        <Border x:Name=\"SleepDragItem\" Background=\"#B08800\" CornerRadius=\"3\" Padding=\"8,4\" Cursor=\"Hand\"");
+            sb.AppendLine("                                                ToolTip=\"Drag into the scenario: when the scenario reaches it, every later step is delayed by the given milliseconds\"");
+            sb.AppendLine("                                                PreviewMouseLeftButtonDown=\"SleepItem_PreviewMouseLeftButtonDown\"");
+            sb.AppendLine("                                                PreviewMouseMove=\"SleepItem_PreviewMouseMove\">");
+            sb.AppendLine("                                            <TextBlock Text=\"\u23F1 Sleep\" Foreground=\"White\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                                        </Border>");
+            sb.AppendLine("                                        <TextBox x:Name=\"SleepMsBox\" Width=\"70\" Margin=\"8,0,0,0\" Text=\"1000\" VerticalContentAlignment=\"Center\"");
+            sb.AppendLine("                                                 ToolTip=\"Sleep duration in milliseconds\"/>");
+            sb.AppendLine("                                        <TextBlock Text=\"ms\" VerticalAlignment=\"Center\" Margin=\"4,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                    </StackPanel>");
+            sb.AppendLine("                                </StackPanel>");
             sb.AppendLine("                                <ListBox x:Name=\"AllMessagesList\" Background=\"#0B1220\" Foreground=\"#E6EDF3\" BorderBrush=\"#22303C\"");
             sb.AppendLine("                                         PreviewMouseLeftButtonDown=\"AllMessagesList_PreviewMouseLeftButtonDown\"");
             sb.AppendLine("                                         PreviewMouseMove=\"AllMessagesList_PreviewMouseMove\"");
@@ -511,7 +550,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                        </GroupBox>");
             sb.AppendLine("                        <GroupBox Grid.Column=\"1\" Header=\"Scenario Steps (each step runs by its own attributes)\">");
             sb.AppendLine("                            <DockPanel>");
-            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag here the message and decide if periodic / one time. Click a step to edit its field values.\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag messages or the Sleep operation here. A Sleep step pauses the scenario (delays all later steps). Click a step to edit its field values.\" TextWrapping=\"Wrap\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
             sb.AppendLine("                                <StackPanel DockPanel.Dock=\"Bottom\" Orientation=\"Horizontal\">");
             sb.AppendLine("                                    <Button Content=\"Remove Step\" Background=\"#8B2E1F\" Click=\"RemoveStep_Click\"/>");
             sb.AppendLine("                                    <Button Content=\"\u2191 Move Up\" Margin=\"6,3,0,3\" Click=\"MoveStepUp_Click\"/>");
@@ -947,6 +986,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        private readonly ObservableCollection<HistoryRow> _history = new();");
             sb.AppendLine("        private readonly ObservableCollection<MonitorRow> _monitor = new();");
             sb.AppendLine("        private readonly ObservableCollection<ReceivedField> _receivedFields = new();");
+            sb.AppendLine("        // Editable cells for the selected message's currently chosen array field.");
+            sb.AppendLine("        private readonly ObservableCollection<ArrayCellRow> _arrayCells = new();");
             sb.AppendLine("        // Periodic sends run on PrecisionTimer threads (1 ms resolution, drift-free),");
             sb.AppendLine("        // never on the UI thread, so a 10 ms cadence stays accurate while the UI works.");
             sb.AppendLine("        private readonly Dictionary<string, PrecisionTimer> _periodicTimers = new();");
@@ -994,6 +1035,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            HistoryGrid.ItemsSource = _history;");
             sb.AppendLine("            MonitorGrid.ItemsSource = _monitor;");
             sb.AppendLine("            ReceivedFieldsGrid.ItemsSource = _receivedFields;");
+            sb.AppendLine("            ArrayCellsGrid.ItemsSource = _arrayCells;");
             sb.AppendLine("            ScenarioStepsList.ItemsSource = _scenarioSteps;");
             sb.AppendLine("            StepFieldsGrid.ItemsSource = _stepFields;");
             sb.AppendLine("            foreach (var m in MessageCatalog.Messages)");
@@ -1040,22 +1082,96 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        {");
             sb.AppendLine("            var info = Current;");
             sb.AppendLine("            _fields.Clear();");
-            sb.AppendLine("            if (info is null) return;");
+            sb.AppendLine("            _arrayCells.Clear();");
+            sb.AppendLine("            if (info is null) { ArraysGroup.Visibility = Visibility.Collapsed; return; }");
             sb.AppendLine("            SelectedMessageHeader.Text = info.Name;");
             sb.AppendLine("            MessageInfoText.Text = $\"Message Id: {info.MessageId}   Length: {info.Length} bytes\";");
             sb.AppendLine("            foreach (var f in info.Fields)");
             sb.AppendLine("                _fields.Add(new FieldRow(f) { Value = f.DefaultValue });");
+            sb.AppendLine("            PopulateArrays(info);");
             sb.AppendLine("            RefreshHex();");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        // ---- Arrays editor: edit each cell of a repeated field before sending ----");
+            sb.AppendLine("        /// <summary>Fills the Arrays editor with the selected message's array fields.</summary>");
+            sb.AppendLine("        private void PopulateArrays(MessageInfo info)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            ArraysCombo.ItemsSource = info.Arrays;");
+            sb.AppendLine("            if (info.Arrays.Length > 0)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                ArraysGroup.Visibility = Visibility.Visible;");
+            sb.AppendLine("                ArraysCombo.SelectedIndex = 0;");
+            sb.AppendLine("            }");
+            sb.AppendLine("            else");
+            sb.AppendLine("            {");
+            sb.AppendLine("                ArraysGroup.Visibility = Visibility.Collapsed;");
+            sb.AppendLine("                ArrayInfoText.Text = \"(no arrays)\";");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>When an array is chosen, show one editable element by default.</summary>");
+            sb.AppendLine("        private void ArraysCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (ArraysCombo.SelectedItem is not ArrayInfo array) { _arrayCells.Clear(); return; }");
+            sb.AppendLine("            var start = Math.Min(1, array.MaxCount);");
+            sb.AppendLine("            ArrayCountBox.Text = start.ToString();");
+            sb.AppendLine("            BuildArrayCells(array, start);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Applies the requested element count (clamped to the array maximum).</summary>");
+            sb.AppendLine("        private void ApplyArrayCount_Click(object sender, RoutedEventArgs e)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (ArraysCombo.SelectedItem is not ArrayInfo array) return;");
+            sb.AppendLine("            if (!int.TryParse(ArrayCountBox.Text, out var count) || count < 0) { Log(\"Enter a valid element count.\"); return; }");
+            sb.AppendLine("            if (count > array.MaxCount) { count = array.MaxCount; ArrayCountBox.Text = count.ToString(); }");
+            sb.AppendLine("            BuildArrayCells(array, count);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Builds one editable row per (element index x sub-field) and reflects the");
+            sb.AppendLine("        /// active element count in the array's count field so the receiver knows the length.</summary>");
+            sb.AppendLine("        private void BuildArrayCells(ArrayInfo array, int count)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            _arrayCells.Clear();");
+            sb.AppendLine("            for (int i = 0; i < count; i++)");
+            sb.AppendLine("                foreach (var el in array.Elements)");
+            sb.AppendLine("                    _arrayCells.Add(new ArrayCellRow");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        Index = i,");
+            sb.AppendLine("                        Offset = array.BaseOffset + i * array.Stride + el.RelativeOffset,");
+            sb.AppendLine("                        Field = el.Field.Replace($\"[{array.IndexVar}]\", $\"[{i}]\", StringComparison.Ordinal),");
+            sb.AppendLine("                        Type = el.Type,");
+            sb.AppendLine("                        Value = \"0\"");
+            sb.AppendLine("                    });");
+            sb.AppendLine("            if (array.CountField is not null)");
+            sb.AppendLine("                foreach (var row in _fields)");
+            sb.AppendLine("                    if (row.Field == array.CountField) row.Value = count.ToString();");
+            sb.AppendLine("            ArrayInfoText.Text = $\"{count} element(s) x {array.Elements.Length} sub-field(s) = {_arrayCells.Count} cell(s), max {array.MaxCount}\";");
+            sb.AppendLine("            RefreshHex();");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Restricts the element-count box to digits.</summary>");
+            sb.AppendLine("        private void ArrayCountBox_PreviewTextInput(object sender, TextCompositionEventArgs e)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            e.Handled = !e.Text.All(char.IsDigit);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Independent copy of the array cells for a background (timer) send.</summary>");
+            sb.AppendLine("        private List<ArrayCellRow> SnapshotArrayCells()");
+            sb.AppendLine("        {");
+            sb.AppendLine("            var list = new List<ArrayCellRow>(_arrayCells.Count);");
+            sb.AppendLine("            foreach (var c in _arrayCells)");
+            sb.AppendLine("                list.Add(new ArrayCellRow { Index = c.Index, Offset = c.Offset, Field = c.Field, Type = c.Type, Value = c.Value });");
+            sb.AppendLine("            return list;");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        // ---- Buffer building via the native wrapper ----");
             sb.AppendLine("        private byte[] BuildBuffer(MessageInfo info, IReadOnlyList<FieldRow> fields) =>");
-            sb.AppendLine("            BuildBufferCore(info, fields, _sequence, AutoSequenceCheck.IsChecked == true,");
+            sb.AppendLine("            BuildBufferCore(info, fields, _arrayCells.ToList(), _sequence, AutoSequenceCheck.IsChecked == true,");
             sb.AppendLine("                AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);");
             sb.AppendLine();
             sb.AppendLine("        /// <summary>Thread-safe buffer build (no UI access) usable from PrecisionTimer threads.");
             sb.AppendLine("        /// Native convert calls are serialized because the wrapper uses static structures.</summary>");
-            sb.AppendLine("        private static byte[] BuildBufferCore(MessageInfo info, IReadOnlyList<FieldRow> fields, int seq, bool autoSeq, bool autoTs, bool autoCrc)");
+            sb.AppendLine("        private static byte[] BuildBufferCore(MessageInfo info, IReadOnlyList<FieldRow> fields, IReadOnlyList<ArrayCellRow>? arrayCells, int seq, bool autoSeq, bool autoTs, bool autoCrc)");
             sb.AppendLine("        {");
             sb.AppendLine("            var buffer = new byte[Math.Max(info.Length, 1)];");
             sb.AppendLine("            IntPtr phys = info.GetPhysical();");
@@ -1073,6 +1189,11 @@ namespace InterfaceWrapper.Services
             sb.AppendLine();
             sb.AppendLine("            foreach (var row in fields)");
             sb.AppendLine("                row.WriteToBuffer(buffer);");
+            sb.AppendLine();
+            sb.AppendLine("            // Overlay the editable array cells after the scalar fields, before the CRC.");
+            sb.AppendLine("            if (arrayCells is not null)");
+            sb.AppendLine("                foreach (var cell in arrayCells)");
+            sb.AppendLine("                    cell.WriteToBuffer(buffer);");
             sb.AppendLine();
             sb.AppendLine("            if (autoCrc)");
             sb.AppendLine("                ApplyCrc(info, buffer);");
@@ -1112,13 +1233,15 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        private void SendMessage(MessageInfo info, IReadOnlyList<FieldRow> fields, bool periodic)");
             sb.AppendLine("        {");
             sb.AppendLine("            if (_transport is null) { Log(\"Transport is not started.\"); return; }");
-            sb.AppendLine("            SendMessageCore(info, fields, periodic, AutoSequenceCheck.IsChecked == true,");
+            sb.AppendLine("            // Include the edited array cells only when sending the message shown in the editor.");
+            sb.AppendLine("            var arrayCells = ReferenceEquals(info, Current) ? SnapshotArrayCells() : null;");
+            sb.AppendLine("            SendMessageCore(info, fields, arrayCells, periodic, AutoSequenceCheck.IsChecked == true,");
             sb.AppendLine("                AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        /// <summary>Builds and sends on the calling thread (safe for PrecisionTimer threads).");
             sb.AppendLine("        /// UI bookkeeping is queued with InvokeAsync so it never delays the 10 ms cadence.</summary>");
-            sb.AppendLine("        private void SendMessageCore(MessageInfo info, IReadOnlyList<FieldRow> fields, bool periodic, bool autoSeq, bool autoTs, bool autoCrc)");
+            sb.AppendLine("        private void SendMessageCore(MessageInfo info, IReadOnlyList<FieldRow> fields, IReadOnlyList<ArrayCellRow>? arrayCells, bool periodic, bool autoSeq, bool autoTs, bool autoCrc)");
             sb.AppendLine("        {");
             sb.AppendLine("            var transport = _transport;");
             sb.AppendLine("            if (transport is null) return;");
@@ -1126,7 +1249,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            try");
             sb.AppendLine("            {");
             sb.AppendLine("                var seq = Interlocked.Increment(ref _sequence) - 1;");
-            sb.AppendLine("                var buffer = BuildBufferCore(info, fields, seq, autoSeq, autoTs, autoCrc);");
+            sb.AppendLine("                var buffer = BuildBufferCore(info, fields, arrayCells, seq, autoSeq, autoTs, autoCrc);");
             sb.AppendLine("                transport.Send(buffer);");
             sb.AppendLine("                _recorder.Record(true, info.MessageId, buffer);");
             sb.AppendLine("                sw.Stop();");
@@ -1174,6 +1297,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            // Snapshot the fields and auto flags so the timer thread never touches the UI;");
             sb.AppendLine("            // the message keeps sending independently of the current selection.");
             sb.AppendLine("            var snapshot = SnapshotFields(info);");
+            sb.AppendLine("            var arraySnapshot = SnapshotArrayCells();");
             sb.AppendLine("            bool autoSeq = AutoSequenceCheck.IsChecked == true;");
             sb.AppendLine("            bool autoTs = AutoTimestampCheck.IsChecked == true;");
             sb.AppendLine("            bool autoCrc = AutoCrcCheck.IsChecked == true;");
@@ -1182,7 +1306,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            {");
             sb.AppendLine("                var i = Interlocked.Increment(ref sent);");
             sb.AppendLine("                if (howMany > 0 && i > howMany) return; // count reached, disposal is on its way");
-            sb.AppendLine("                SendMessageCore(info, snapshot, true, autoSeq, autoTs, autoCrc);");
+            sb.AppendLine("                SendMessageCore(info, snapshot, arraySnapshot, true, autoSeq, autoTs, autoCrc);");
             sb.AppendLine("                if (howMany > 0 && i == howMany)");
             sb.AppendLine("                    Dispatcher.InvokeAsync(() => StopPeriodic(info.Name));");
             sb.AppendLine("            });");
@@ -1516,7 +1640,41 @@ namespace InterfaceWrapper.Services
 
                     private void ScenarioSteps_Drop(object sender, DragEventArgs e)
                     {
-                        if (e.Data.GetData(DataFormats.StringFormat) is string name) AddScenarioStep(name);
+                        if (e.Data.GetData(DataFormats.StringFormat) is not string name) return;
+                        if (name == SleepDragToken) AddSleepStep();
+                        else AddScenarioStep(name);
+                    }
+
+                    // ---- Sleep operation: drag "Sleep" (with its ms) into the scenario ----
+                    private const string SleepDragToken = "::SLEEP::";
+
+                    private void SleepItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+                    {
+                        _dragStartPoint = e.GetPosition(null);
+                        if (e.ClickCount == 2) AddSleepStep();
+                    }
+
+                    private void SleepItem_PreviewMouseMove(object sender, MouseEventArgs e)
+                    {
+                        if (e.LeftButton != MouseButtonState.Pressed) return;
+                        var pos = e.GetPosition(null);
+                        if (Math.Abs(pos.X - _dragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                            Math.Abs(pos.Y - _dragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+                        DragDrop.DoDragDrop(SleepDragItem, SleepDragToken, DragDropEffects.Copy);
+                    }
+
+                    /// <summary>Adds a Sleep step with the duration from the ms box; when the running
+                    /// scenario reaches it, every later step is delayed by that duration.</summary>
+                    private void AddSleepStep()
+                    {
+                        var ms = int.TryParse(SleepMsBox.Text, out var v) ? Math.Max(1, v) : 1000;
+                        _scenarioSteps.Add(new ScenarioStepRow
+                        {
+                            Message = "SLEEP", IsSleep = true, TimeMs = ms,
+                            PeriodicIntervalMs = 0, Periodic = false, MaxMessages = 0
+                        });
+                        RenumberSteps();
+                        Log($"Sleep step added ({ms} ms).");
                     }
 
                     /// <summary>Adds a message to the scenario; the same message can be added any number of times.</summary>
@@ -1549,6 +1707,11 @@ namespace InterfaceWrapper.Services
                         if (_editingStep is null)
                         {
                             StepFieldsHeader.Text = "Step Fields (select a step)";
+                            return;
+                        }
+                        if (_editingStep.IsSleep)
+                        {
+                            StepFieldsHeader.Text = $"Step {_editingStep.Index}: \u23F1 Sleep {_editingStep.TimeMs} ms";
                             return;
                         }
                         var info = MessageCatalog.ByName(_editingStep.Message);
@@ -1643,31 +1806,60 @@ namespace InterfaceWrapper.Services
                         catch (Exception ex) { Log("Scenario open error: " + ex.Message); }
                     }
 
-                    // ---- Scenario execution: every step is scheduled independently (asynchronously) ----
+                    // ---- Scenario execution: every step is scheduled independently (asynchronously);
+                    // a Sleep step pauses the scenario timeline, delaying every step after it. ----
                     private void RunScenario_Click(object sender, RoutedEventArgs e)
                     {
                         if (_scenarioRunning) { Log("Scenario is already running."); return; }
                         if (_transport is null) { Log("Start the transport before running a scenario."); return; }
                         if (_scenarioSteps.Count == 0) { Log("The scenario has no steps."); return; }
                         _scenarioRunning = true;
-                        foreach (var step in _scenarioSteps) ScheduleStep(step);
+                        long sleepOffsetMs = 0;
+                        foreach (var step in _scenarioSteps)
+                        {
+                            if (step.IsSleep)
+                            {
+                                ScheduleSleepLog(step, sleepOffsetMs);
+                                sleepOffsetMs += Math.Max(0, step.TimeMs);
+                                continue;
+                            }
+                            ScheduleStep(step, sleepOffsetMs);
+                        }
                         Log($"Scenario started ({_scenarioSteps.Count} step(s)).");
+                    }
+
+                    /// <summary>Logs the moment the running scenario reaches a Sleep step.</summary>
+                    private void ScheduleSleepLog(ScenarioStepRow step, long startOffsetMs)
+                    {
+                        var sleepMs = Math.Max(0, step.TimeMs);
+                        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(1, startOffsetMs)) };
+                        timer.Tick += (_, _) =>
+                        {
+                            timer.Stop();
+                            _scenarioTimers.Remove(timer);
+                            if (!_scenarioRunning) return;
+                            Log($"Step {step.Index}: \u23F1 sleeping {sleepMs} ms (later steps are delayed).");
+                        };
+                        _scenarioTimers.Add(timer);
+                        timer.Start();
                     }
 
                     /// <summary>Arms one step: a DispatcherTimer waits its start time, then the
                     /// periodic repeats run on a PrecisionTimer for millisecond-accurate cadence.</summary>
-                    private void ScheduleStep(ScenarioStepRow step)
+                    private void ScheduleStep(ScenarioStepRow step, long extraDelayMs = 0)
                     {
+                        if (step.IsSleep) return; // sleep steps only shift the timeline (handled in Run)
                         var info = MessageCatalog.ByName(step.Message);
                         if (info is null) { Log($"Step {step.Index}: unknown message '{step.Message}'."); return; }
                         var fields = BuildStepFields(info, step);
-                        var startTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(1, step.TimeMs)) };
+                        // The start delay includes the accumulated Sleep steps that precede this step.
+                        var startTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(1, step.TimeMs + extraDelayMs)) };
                         startTimer.Tick += (_, _) =>
                         {
                             startTimer.Stop();
                             _scenarioTimers.Remove(startTimer);
                             if (!_scenarioRunning) return;
-                            SendMessage(info, fields, step.Periodic);
+                            SendMessageCore(info, fields, null, step.Periodic, AutoSequenceCheck.IsChecked == true, AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);
                             if (!step.Periodic || step.PeriodicIntervalMs <= 0 || step.MaxMessages == 1) return;
                             // Snapshot the auto flags on the UI thread; the repeats run off the UI thread.
                             bool autoSeq = AutoSequenceCheck.IsChecked == true;
@@ -1680,7 +1872,7 @@ namespace InterfaceWrapper.Services
                                 if (!_scenarioRunning) return;
                                 var i = Interlocked.Increment(ref sent);
                                 if (step.MaxMessages > 0 && i > step.MaxMessages) return;
-                                SendMessageCore(info, fields, true, autoSeq, autoTs, autoCrc);
+                                SendMessageCore(info, fields, null, true, autoSeq, autoTs, autoCrc);
                                 if (step.MaxMessages > 0 && i == step.MaxMessages)
                                 {
                                     periodicTimer!.Dispose();
@@ -2637,18 +2829,23 @@ namespace InterfaceWrapper.Services
                     private int _periodicIntervalMs = 1000;
                     private bool _periodic;
                     private int _maxMessages;
+                    private bool _isSleep;
 
                     /// <summary>The JSON prefix number; also the send order shown in the grid.</summary>
                     public int Index { get => _index; set { _index = value; OnChanged(nameof(Index)); } }
                     public string Message { get => _message; set { _message = value; OnChanged(nameof(Message)); } }
-                    /// <summary>Milliseconds from scenario start until the first send.</summary>
+                    /// <summary>Milliseconds from scenario start until the first send;
+                    /// for a Sleep step, the sleep duration.</summary>
                     public int TimeMs { get => _timeMs; set { _timeMs = value; OnChanged(nameof(TimeMs)); } }
                     /// <summary>Interval between periodic sends, in milliseconds.</summary>
                     public int PeriodicIntervalMs { get => _periodicIntervalMs; set { _periodicIntervalMs = value; OnChanged(nameof(PeriodicIntervalMs)); } }
                     public bool Periodic { get => _periodic; set { _periodic = value; OnChanged(nameof(Periodic)); OnChanged(nameof(SendType)); } }
                     /// <summary>Number of periodic sends; 0 sends with no limit.</summary>
                     public int MaxMessages { get => _maxMessages; set { _maxMessages = value; OnChanged(nameof(MaxMessages)); } }
-                    public string SendType => Periodic ? "Periodic" : "One Time";
+                    /// <summary>True for a Sleep operation step: TimeMs holds the sleep duration and
+                    /// every step after it is delayed by that amount when the scenario runs.</summary>
+                    public bool IsSleep { get => _isSleep; set { _isSleep = value; OnChanged(nameof(IsSleep)); OnChanged(nameof(SendType)); } }
+                    public string SendType => IsSleep ? "Sleep" : Periodic ? "Periodic" : "One Time";
                     /// <summary>The message field values saved in the step JSON file.</summary>
                     public Dictionary<string, string>? FieldValues { get; set; }
 
@@ -2687,7 +2884,8 @@ namespace InterfaceWrapper.Services
                                 new XAttribute("time", step.TimeMs),
                                 new XAttribute("periodicInterval", step.PeriodicIntervalMs),
                                 new XAttribute("periodic", step.Periodic ? "true" : "false"),
-                                new XAttribute("maxMessages", step.MaxMessages)));
+                                new XAttribute("maxMessages", step.MaxMessages),
+                                new XAttribute("sleep", step.IsSleep ? "true" : "false")));
 
                             var json = JsonSerializer.Serialize(
                                 step.FieldValues ?? new Dictionary<string, string>(),
@@ -2718,7 +2916,8 @@ namespace InterfaceWrapper.Services
                                 TimeMs = ReadInt(section, "time", 0),
                                 PeriodicIntervalMs = ReadInt(section, "periodicInterval", 0),
                                 Periodic = string.Equals((string?)section.Attribute("periodic"), "true", StringComparison.OrdinalIgnoreCase),
-                                MaxMessages = ReadInt(section, "maxMessages", 0)
+                                MaxMessages = ReadInt(section, "maxMessages", 0),
+                                IsSleep = string.Equals((string?)section.Attribute("sleep"), "true", StringComparison.OrdinalIgnoreCase)
                             };
 
                             // The JSON file prefixed with the index carries the message name and its values.
@@ -2909,6 +3108,67 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        public GlobalStatRow(string statistic, string value) { Statistic = statistic; Value = value; }");
             sb.AppendLine("        public string Statistic { get; }");
             sb.AppendLine("        public string Value { get; }");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>One sub-field of an array element (Arrays editor).</summary>");
+            sb.AppendLine("    public sealed class ArrayElementInfo");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public int RelativeOffset { get; init; }");
+            sb.AppendLine("        public string Field { get; init; } = string.Empty;");
+            sb.AppendLine("        public string Type { get; init; } = string.Empty;");
+            sb.AppendLine("        public int Size { get; init; }");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>An array field discovered in a convert loop (repeated element block).</summary>");
+            sb.AppendLine("    public sealed class ArrayInfo");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public string Name { get; init; } = string.Empty;");
+            sb.AppendLine("        public int BaseOffset { get; init; }");
+            sb.AppendLine("        public int Stride { get; init; }");
+            sb.AppendLine("        public int MaxCount { get; init; }");
+            sb.AppendLine("        public string IndexVar { get; init; } = \"i1\";");
+            sb.AppendLine("        public string? CountField { get; init; }");
+            sb.AppendLine("        public ArrayElementInfo[] Elements { get; init; } = Array.Empty<ArrayElementInfo>();");
+            sb.AppendLine("        public string Display => $\"{Name}  [max {MaxCount} x {Stride} B]\";");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>One editable array cell (a single sub-field of a single element).</summary>");
+            sb.AppendLine("    public sealed class ArrayCellRow : INotifyPropertyChanged");
+            sb.AppendLine("    {");
+            sb.AppendLine("        private string _value = \"0\";");
+            sb.AppendLine("        public int Index { get; set; }");
+            sb.AppendLine("        public string Field { get; set; } = string.Empty;");
+            sb.AppendLine("        public string Type { get; set; } = string.Empty;");
+            sb.AppendLine("        public int Offset { get; set; }");
+            sb.AppendLine("        public string Value { get => _value; set { _value = value; OnChanged(nameof(Value)); } }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Writes this cell's value into the interface buffer at its absolute offset.</summary>");
+            sb.AppendLine("        public void WriteToBuffer(byte[] buffer)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            var ci = CultureInfo.InvariantCulture;");
+            sb.AppendLine("            switch (Type)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                case \"UINT8\": if (Offset + 1 <= buffer.Length) buffer[Offset] = byte.TryParse(_value, out var b) ? b : (byte)0; break;");
+            sb.AppendLine("                case \"INT8\": if (Offset + 1 <= buffer.Length) buffer[Offset] = unchecked((byte)(sbyte.TryParse(_value, out var s8) ? s8 : 0)); break;");
+            sb.AppendLine("                case \"UINT16\": Write(buffer, BitConverter.GetBytes(ushort.TryParse(_value, out var u16) ? u16 : (ushort)0)); break;");
+            sb.AppendLine("                case \"INT16\": Write(buffer, BitConverter.GetBytes(short.TryParse(_value, out var i16) ? i16 : (short)0)); break;");
+            sb.AppendLine("                case \"UINT32\": Write(buffer, BitConverter.GetBytes(uint.TryParse(_value, out var u32) ? u32 : 0u)); break;");
+            sb.AppendLine("                case \"INT32\": Write(buffer, BitConverter.GetBytes(int.TryParse(_value, out var i32) ? i32 : 0)); break;");
+            sb.AppendLine("                case \"UINT64\": Write(buffer, BitConverter.GetBytes(ulong.TryParse(_value, out var u64) ? u64 : 0ul)); break;");
+            sb.AppendLine("                case \"INT64\": Write(buffer, BitConverter.GetBytes(long.TryParse(_value, out var i64) ? i64 : 0L)); break;");
+            sb.AppendLine("                case \"FLOAT32\": Write(buffer, BitConverter.GetBytes(float.TryParse(_value, NumberStyles.Float, ci, out var f) ? f : 0f)); break;");
+            sb.AppendLine("                case \"FLOAT64\": Write(buffer, BitConverter.GetBytes(double.TryParse(_value, NumberStyles.Float, ci, out var d) ? d : 0d)); break;");
+            sb.AppendLine("            }");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        private void Write(byte[] buffer, byte[] value)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (Offset + value.Length <= buffer.Length)");
+            sb.AppendLine("                Array.Copy(value, 0, buffer, Offset, value.Length);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        public event PropertyChangedEventHandler? PropertyChanged;");
+            sb.AppendLine("        private void OnChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));");
             sb.AppendLine("    }");
             sb.AppendLine("}");
             return sb.ToString();
@@ -3319,6 +3579,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        public Func<IntPtr> GetPhysical { get; init; } = () => IntPtr.Zero;");
             sb.AppendLine("        public Action<byte[], IntPtr> ConvertToInterface { get; init; } = (_, _) => { };");
             sb.AppendLine("        public Action<byte[], IntPtr> ConvertToPhysical { get; init; } = (_, _) => { };");
+            sb.AppendLine("        public ArrayInfo[] Arrays { get; init; } = Array.Empty<ArrayInfo>();");
             sb.AppendLine("    }");
             sb.AppendLine();
             sb.AppendLine("    public static class MessageCatalog");
@@ -3353,7 +3614,7 @@ namespace InterfaceWrapper.Services
                 sb.AppendLine($"                ConvertToPhysical = {toPhys},");
                 if (msg.Fields.Count == 0)
                 {
-                    sb.AppendLine("                Fields = Array.Empty<FieldInfo>()");
+                    sb.AppendLine("                Fields = Array.Empty<FieldInfo>(),");
                 }
                 else
                 {
@@ -3363,6 +3624,31 @@ namespace InterfaceWrapper.Services
                     {
                         var def = DefaultFor(msg, f);
                         sb.AppendLine($"                    new FieldInfo {{ Offset = {f.Offset}, Field = \"{f.Field}\", Type = \"{f.Type}\", Size = {f.Size}, DefaultValue = \"{def}\" }},");
+                    }
+                    sb.AppendLine("                },");
+                }
+                if (msg.Arrays.Count == 0)
+                {
+                    sb.AppendLine("                Arrays = Array.Empty<ArrayInfo>()");
+                }
+                else
+                {
+                    sb.AppendLine("                Arrays = new[]");
+                    sb.AppendLine("                {");
+                    foreach (var arr in msg.Arrays)
+                    {
+                        var countField = arr.CountField is null ? "null" : $"\"{arr.CountField}\"";
+                        sb.AppendLine("                    new ArrayInfo");
+                        sb.AppendLine("                    {");
+                        sb.AppendLine($"                        Name = \"{arr.Name}\", BaseOffset = {arr.BaseOffset}, Stride = {arr.Stride}, MaxCount = {arr.MaxCount}, IndexVar = \"{arr.IndexVar}\", CountField = {countField},");
+                        sb.AppendLine("                        Elements = new[]");
+                        sb.AppendLine("                        {");
+                        foreach (var el in arr.Elements)
+                        {
+                            sb.AppendLine($"                            new ArrayElementInfo {{ RelativeOffset = {el.RelativeOffset}, Field = \"{el.Field}\", Type = \"{el.Type}\", Size = {el.Size} }},");
+                        }
+                        sb.AppendLine("                        }");
+                        sb.AppendLine("                    },");
                     }
                     sb.AppendLine("                }");
                 }
@@ -3402,6 +3688,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("## Features");
             sb.AppendLine();
             sb.AppendLine("- Message list with per-message editable field grid (Offset/Field/Type/Size/Value).");
+            sb.AppendLine("- Array fields are editable per element: pick an array, set the element count");
+            sb.AppendLine("  and edit each cell's value before sending (the count field is set for you).");
             sb.AppendLine("- Auto sequence / timestamp / CRC toggles.");
             sb.AppendLine("- Live HEX preview built through the native convert functions.");
             sb.AppendLine("- Selectable transport: UDP, TCP (client or server) or RS232 serial.");
@@ -3410,7 +3698,10 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("- Export/Import message field values as JSON.");
             sb.AppendLine("- Scenario tab: drag messages from 'All Messages' into an ordered step list,");
             sb.AppendLine("  set per-step attributes (one time / periodic, start time, interval, max count)");
-            sb.AppendLine("  and run all steps in parallel. A scenario is stored in its own folder as");
+            sb.AppendLine("  and run all steps in parallel. A Sleep operation can be dragged from the");
+            sb.AppendLine("  Operations panel under 'All Messages' (with a millisecond duration); when the");
+            sb.AppendLine("  running scenario reaches the Sleep step it pauses the timeline for that long");
+            sb.AppendLine("  (every later step is delayed). A scenario is stored in its own folder as");
             sb.AppendLine("  `Configuration.xml` plus one `{index}_{message}.json` file per step.");
             sb.AppendLine("- Record button: captures every incoming and outgoing message to a binary `.bin`");
             sb.AppendLine("  file. The Record tab opens such a file, lists the message types on the left,");
