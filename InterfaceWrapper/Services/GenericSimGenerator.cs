@@ -337,43 +337,66 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
             sb.AppendLine("                        <RowDefinition Height=\"*\"/>");
             sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
-            sb.AppendLine("                        <RowDefinition Height=\"Auto\"/>");
             sb.AppendLine("                    </Grid.RowDefinitions>");
             sb.AppendLine("                    <TextBlock x:Name=\"MessageInfoText\" Grid.Row=\"0\" Text=\"Message Id: -   Length: - bytes\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
-            sb.AppendLine("                    <DataGrid x:Name=\"FieldsGrid\" Grid.Row=\"1\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\">");
+            sb.AppendLine("                    <DataGrid x:Name=\"FieldsGrid\" Grid.Row=\"1\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" RowDetailsVisibilityMode=\"Collapsed\"");
+            sb.AppendLine("                              PreviewMouseLeftButtonUp=\"ArrayRow_ToggleOnClick\" LoadingRow=\"ArrayRow_LoadingRow\">");
+            sb.AppendLine("                        <!-- An array field is a normal row at its real offset; clicking the row opens its");
+            sb.AppendLine("                             cells as a nested table right below it (DetailsVisibility is set in code-behind");
+            sb.AppendLine("                             because a RowStyle trigger can be overridden by the DataGrid's own coercion). -->");
             sb.AppendLine("                        <DataGrid.Columns>");
+            sb.AppendLine("                            <!-- The arrow is a visual indicator; clicking anywhere on the array row");
+            sb.AppendLine("                                 toggles the nested cells table (grid PreviewMouseLeftButtonUp). -->");
+            sb.AppendLine("                            <DataGridTemplateColumn Width=\"30\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                <DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                    <DataTemplate>");
+            sb.AppendLine("                                        <Border Background=\"Transparent\" Cursor=\"Hand\" Visibility=\"{Binding ExpanderVisibility}\"");
+            sb.AppendLine("                                                ToolTip=\"Click the row to open / close the array cells\">");
+            sb.AppendLine("                                            <TextBlock Text=\"{Binding ExpanderGlyph}\" Foreground=\"#8FB4D9\" FontSize=\"12\" HorizontalAlignment=\"Center\" VerticalAlignment=\"Center\"/>");
+            sb.AppendLine("                                        </Border>");
+            sb.AppendLine("                                    </DataTemplate>");
+            sb.AppendLine("                                </DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                            </DataGridTemplateColumn>");
             sb.AppendLine("                            <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" IsReadOnly=\"True\" Width=\"70\"/>");
             sb.AppendLine("                            <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
             sb.AppendLine("                            <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"90\"/>");
             sb.AppendLine("                            <DataGridTextColumn Header=\"Size\" Binding=\"{Binding Size}\" IsReadOnly=\"True\" Width=\"60\"/>");
             sb.AppendLine("                            <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value, UpdateSourceTrigger=PropertyChanged}\" Width=\"*\"/>");
             sb.AppendLine("                        </DataGrid.Columns>");
+            sb.AppendLine("                        <DataGrid.RowDetailsTemplate>");
+            sb.AppendLine("                            <DataTemplate>");
+            sb.AppendLine("                                <Border Background=\"#0B1220\" BorderBrush=\"#22303C\" BorderThickness=\"1\" CornerRadius=\"3\" Margin=\"30,2,8,6\" Padding=\"6\">");
+            sb.AppendLine("                                    <StackPanel>");
+            sb.AppendLine("                                        <StackPanel Orientation=\"Horizontal\" Margin=\"0,0,0,4\">");
+            sb.AppendLine("                                            <TextBlock Text=\"Elements\" VerticalAlignment=\"Center\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                            <TextBox Text=\"{Binding CountText, UpdateSourceTrigger=PropertyChanged}\" Width=\"60\" Margin=\"6,0,0,0\"/>");
+            sb.AppendLine("                                            <Button Content=\"Apply\" Width=\"60\" Margin=\"6,0,0,0\" Click=\"ApplyArrayCount_Click\"/>");
+            sb.AppendLine("                                            <TextBlock Text=\"{Binding ArraySummary}\" VerticalAlignment=\"Center\" Margin=\"10,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                        </StackPanel>");
+            sb.AppendLine("                                        <DataGrid ItemsSource=\"{Binding Cells}\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" MaxHeight=\"180\">");
+            sb.AppendLine("                                            <DataGrid.Columns>");
+            sb.AppendLine("                                                <DataGridTextColumn Header=\"Idx\" Binding=\"{Binding Index}\" IsReadOnly=\"True\" Width=\"46\"/>");
+            sb.AppendLine("                                                <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" IsReadOnly=\"True\" Width=\"60\"/>");
+            sb.AppendLine("                                                <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
+            sb.AppendLine("                                                <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
+            sb.AppendLine("                                                <!-- Always-active TextBox: a single click puts the caret in the cell so the");
+            sb.AppendLine("                                                     value can be typed directly (DataGrid edit-mode inside RowDetails is unreliable). -->");
+            sb.AppendLine("                                                <DataGridTemplateColumn Header=\"Value\" Width=\"*\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                                    <DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                        <DataTemplate>");
+            sb.AppendLine("                                                            <TextBox Text=\"{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}\" BorderThickness=\"0\"");
+            sb.AppendLine("                                                                     Background=\"Transparent\" Foreground=\"#E6EDF3\" Padding=\"2,0\" ToolTip=\"Type the cell value\"/>");
+            sb.AppendLine("                                                        </DataTemplate>");
+            sb.AppendLine("                                                    </DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                </DataGridTemplateColumn>");
+            sb.AppendLine("                                            </DataGrid.Columns>");
+            sb.AppendLine("                                        </DataGrid>");
+            sb.AppendLine("                                    </StackPanel>");
+            sb.AppendLine("                                </Border>");
+            sb.AppendLine("                            </DataTemplate>");
+            sb.AppendLine("                        </DataGrid.RowDetailsTemplate>");
             sb.AppendLine("                    </DataGrid>");
-            sb.AppendLine("                    <GroupBox x:Name=\"ArraysGroup\" Grid.Row=\"2\" Header=\"Arrays (edit each cell before sending)\" Visibility=\"Collapsed\" Margin=\"0,6,0,0\">");
-            sb.AppendLine("                        <Grid>");
-            sb.AppendLine("                            <Grid.RowDefinitions>");
-            sb.AppendLine("                                <RowDefinition Height=\"Auto\"/>");
-            sb.AppendLine("                                <RowDefinition Height=\"Auto\"/>");
-            sb.AppendLine("                            </Grid.RowDefinitions>");
-            sb.AppendLine("                            <StackPanel Grid.Row=\"0\" Orientation=\"Horizontal\" Margin=\"0,0,0,4\">");
-            sb.AppendLine("                                <ComboBox x:Name=\"ArraysCombo\" Width=\"240\" DisplayMemberPath=\"Display\" SelectionChanged=\"ArraysCombo_SelectionChanged\"/>");
-            sb.AppendLine("                                <TextBlock Text=\"Elements\" VerticalAlignment=\"Center\" Margin=\"10,0,4,0\"/>");
-            sb.AppendLine("                                <TextBox x:Name=\"ArrayCountBox\" Width=\"60\" Text=\"0\" PreviewTextInput=\"ArrayCountBox_PreviewTextInput\"/>");
-            sb.AppendLine("                                <Button x:Name=\"ApplyArrayCountButton\" Content=\"Apply\" Width=\"60\" Margin=\"6,0,0,0\" Click=\"ApplyArrayCount_Click\"/>");
-            sb.AppendLine("                                <TextBlock x:Name=\"ArrayInfoText\" VerticalAlignment=\"Center\" Margin=\"10,0,0,0\" Foreground=\"#7A8CA0\" Text=\"(select an array)\"/>");
-            sb.AppendLine("                            </StackPanel>");
-            sb.AppendLine("                            <DataGrid x:Name=\"ArrayCellsGrid\" Grid.Row=\"1\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" MaxHeight=\"170\">");
-            sb.AppendLine("                                <DataGrid.Columns>");
-            sb.AppendLine("                                    <DataGridTextColumn Header=\"Idx\" Binding=\"{Binding Index}\" IsReadOnly=\"True\" Width=\"46\"/>");
-            sb.AppendLine("                                    <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" IsReadOnly=\"True\" Width=\"60\"/>");
-            sb.AppendLine("                                    <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
-            sb.AppendLine("                                    <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
-            sb.AppendLine("                                    <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value, UpdateSourceTrigger=PropertyChanged}\" Width=\"*\"/>");
-            sb.AppendLine("                                </DataGrid.Columns>");
-            sb.AppendLine("                            </DataGrid>");
-            sb.AppendLine("                        </Grid>");
-            sb.AppendLine("                    </GroupBox>");
-            sb.AppendLine("                    <Grid Grid.Row=\"3\">");
+            sb.AppendLine("                    <Grid Grid.Row=\"2\">");
             sb.AppendLine("                        <Grid.ColumnDefinitions>");
             sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
             sb.AppendLine("                            <ColumnDefinition Width=\"*\"/>");
@@ -541,6 +564,15 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                                                 ToolTip=\"Sleep duration in milliseconds\"/>");
             sb.AppendLine("                                        <TextBlock Text=\"ms\" VerticalAlignment=\"Center\" Margin=\"4,0,0,0\" Foreground=\"#7A8CA0\"/>");
             sb.AppendLine("                                    </StackPanel>");
+            sb.AppendLine("                                    <StackPanel Orientation=\"Horizontal\" Margin=\"0,6,0,0\">");
+            sb.AppendLine("                                        <Border x:Name=\"ResponseDragItem\" Background=\"#1F8FA8\" CornerRadius=\"3\" Padding=\"8,4\" Cursor=\"Hand\"");
+            sb.AppendLine("                                                ToolTip=\"Drag into the scenario: when the chosen message is received and its field equals the value, the configured message is sent\"");
+            sb.AppendLine("                                                PreviewMouseLeftButtonDown=\"ResponseItem_PreviewMouseLeftButtonDown\"");
+            sb.AppendLine("                                                PreviewMouseMove=\"ResponseItem_PreviewMouseMove\">");
+            sb.AppendLine("                                            <TextBlock Text=\"\u21C4 Response\" Foreground=\"White\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                                        </Border>");
+            sb.AppendLine("                                        <TextBlock Text=\"receive \u2192 check field \u2192 send\" VerticalAlignment=\"Center\" Margin=\"8,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                    </StackPanel>");
             sb.AppendLine("                                </StackPanel>");
             sb.AppendLine("                                <ListBox x:Name=\"AllMessagesList\" Background=\"#0B1220\" Foreground=\"#E6EDF3\" BorderBrush=\"#22303C\"");
             sb.AppendLine("                                         PreviewMouseLeftButtonDown=\"AllMessagesList_PreviewMouseLeftButtonDown\"");
@@ -550,7 +582,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                        </GroupBox>");
             sb.AppendLine("                        <GroupBox Grid.Column=\"1\" Header=\"Scenario Steps (each step runs by its own attributes)\">");
             sb.AppendLine("                            <DockPanel>");
-            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag messages or the Sleep operation here. A Sleep step pauses the scenario (delays all later steps). Click a step to edit its field values.\" TextWrapping=\"Wrap\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag messages or the Sleep / Response operations here. A Sleep step pauses the scenario; a Response step sends a message when a received message's field matches a value. Click a step to edit it.\" TextWrapping=\"Wrap\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
             sb.AppendLine("                                <StackPanel DockPanel.Dock=\"Bottom\" Orientation=\"Horizontal\">");
             sb.AppendLine("                                    <Button Content=\"Remove Step\" Background=\"#8B2E1F\" Click=\"RemoveStep_Click\"/>");
             sb.AppendLine("                                    <Button Content=\"\u2191 Move Up\" Margin=\"6,3,0,3\" Click=\"MoveStepUp_Click\"/>");
@@ -577,13 +609,69 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                                <TextBlock x:Name=\"StepFieldsHeader\" Text=\"Step Fields (select a step)\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\"/>");
             sb.AppendLine("                            </GroupBox.Header>");
             sb.AppendLine("                            <DockPanel>");
-            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Edit the values this step sends (saved with the scenario)\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
-            sb.AppendLine("                                <DataGrid x:Name=\"StepFieldsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\">");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Edit the values this step sends (saved with the scenario); click an array row to open its cells and type each value\" TextWrapping=\"Wrap\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <StackPanel x:Name=\"ResponseEditPanel\" DockPanel.Dock=\"Top\" Visibility=\"Collapsed\" Margin=\"0,0,0,6\">");
+            sb.AppendLine("                                    <TextBlock Text=\"1) When this message is received:\" Foreground=\"#8FB4D9\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"ResponseTriggerCombo\" SelectionChanged=\"ResponseTriggerCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"2) And this field equals the value:\" Foreground=\"#8FB4D9\" Margin=\"0,6,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"ResponseFieldCombo\" SelectionChanged=\"ResponseFieldCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                    <TextBox x:Name=\"ResponseValueBox\" Margin=\"0,4,0,0\" TextChanged=\"ResponseValueBox_TextChanged\" ToolTip=\"Expected value of the chosen field\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"3) Then send this message (edit its values below):\" Foreground=\"#8FB4D9\" Margin=\"0,6,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"ResponseSendCombo\" SelectionChanged=\"ResponseSendCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                                <DataGrid x:Name=\"StepFieldsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" RowDetailsVisibilityMode=\"Collapsed\"");
+            sb.AppendLine("                                          PreviewMouseLeftButtonUp=\"ArrayRow_ToggleOnClick\" LoadingRow=\"ArrayRow_LoadingRow\">");
+            sb.AppendLine("                                    <!-- Array rows open into a nested cells table on row click (same as the");
+            sb.AppendLine("                                         Simulator tab; DetailsVisibility is set in code-behind). -->");
             sb.AppendLine("                                    <DataGrid.Columns>");
+            sb.AppendLine("                                        <!-- The arrow is a visual indicator; clicking anywhere on the array row");
+            sb.AppendLine("                                             toggles the nested cells table (grid PreviewMouseLeftButtonUp). -->");
+            sb.AppendLine("                                        <DataGridTemplateColumn Width=\"26\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                            <DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                <DataTemplate>");
+            sb.AppendLine("                                                    <Border Background=\"Transparent\" Cursor=\"Hand\" Visibility=\"{Binding ExpanderVisibility}\"");
+            sb.AppendLine("                                                            ToolTip=\"Click the row to open / close the array cells\">");
+            sb.AppendLine("                                                        <TextBlock Text=\"{Binding ExpanderGlyph}\" Foreground=\"#8FB4D9\" FontSize=\"12\" HorizontalAlignment=\"Center\" VerticalAlignment=\"Center\"/>");
+            sb.AppendLine("                                                    </Border>");
+            sb.AppendLine("                                                </DataTemplate>");
+            sb.AppendLine("                                            </DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                        </DataGridTemplateColumn>");
             sb.AppendLine("                                        <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
             sb.AppendLine("                                        <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
             sb.AppendLine("                                        <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value, UpdateSourceTrigger=PropertyChanged}\" Width=\"*\"/>");
             sb.AppendLine("                                    </DataGrid.Columns>");
+            sb.AppendLine("                                    <DataGrid.RowDetailsTemplate>");
+            sb.AppendLine("                                        <DataTemplate>");
+            sb.AppendLine("                                            <Border Background=\"#0B1220\" BorderBrush=\"#22303C\" BorderThickness=\"1\" CornerRadius=\"3\" Margin=\"26,2,8,6\" Padding=\"6\">");
+            sb.AppendLine("                                                <StackPanel>");
+            sb.AppendLine("                                                    <StackPanel Orientation=\"Horizontal\" Margin=\"0,0,0,4\">");
+            sb.AppendLine("                                                        <TextBlock Text=\"Elements\" VerticalAlignment=\"Center\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                                        <TextBox Text=\"{Binding CountText, UpdateSourceTrigger=PropertyChanged}\" Width=\"60\" Margin=\"6,0,0,0\"/>");
+            sb.AppendLine("                                                        <Button Content=\"Apply\" Width=\"60\" Margin=\"6,0,0,0\" Click=\"ApplyStepArrayCount_Click\"/>");
+            sb.AppendLine("                                                        <TextBlock Text=\"{Binding ArraySummary}\" VerticalAlignment=\"Center\" Margin=\"10,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                                    </StackPanel>");
+            sb.AppendLine("                                                    <DataGrid ItemsSource=\"{Binding Cells}\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" MaxHeight=\"160\">");
+            sb.AppendLine("                                                        <DataGrid.Columns>");
+            sb.AppendLine("                                                            <DataGridTextColumn Header=\"Idx\" Binding=\"{Binding Index}\" IsReadOnly=\"True\" Width=\"46\"/>");
+            sb.AppendLine("                                                            <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" IsReadOnly=\"True\" Width=\"60\"/>");
+            sb.AppendLine("                                                            <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
+            sb.AppendLine("                                                            <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
+            sb.AppendLine("                                                            <!-- Always-active TextBox: a single click puts the caret in the cell so the");
+            sb.AppendLine("                                                                 value can be typed directly (DataGrid edit-mode inside RowDetails is unreliable). -->");
+            sb.AppendLine("                                                            <DataGridTemplateColumn Header=\"Value\" Width=\"*\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                                                <DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                                    <DataTemplate>");
+            sb.AppendLine("                                                                        <TextBox Text=\"{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}\" BorderThickness=\"0\"");
+            sb.AppendLine("                                                                                 Background=\"Transparent\" Foreground=\"#E6EDF3\" Padding=\"2,0\" ToolTip=\"Type the cell value\"/>");
+            sb.AppendLine("                                                                    </DataTemplate>");
+            sb.AppendLine("                                                                </DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                            </DataGridTemplateColumn>");
+            sb.AppendLine("                                                        </DataGrid.Columns>");
+            sb.AppendLine("                                                    </DataGrid>");
+            sb.AppendLine("                                                </StackPanel>");
+            sb.AppendLine("                                            </Border>");
+            sb.AppendLine("                                        </DataTemplate>");
+            sb.AppendLine("                                    </DataGrid.RowDetailsTemplate>");
             sb.AppendLine("                                </DataGrid>");
             sb.AppendLine("                            </DockPanel>");
             sb.AppendLine("                        </GroupBox>");
@@ -986,14 +1074,15 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        private readonly ObservableCollection<HistoryRow> _history = new();");
             sb.AppendLine("        private readonly ObservableCollection<MonitorRow> _monitor = new();");
             sb.AppendLine("        private readonly ObservableCollection<ReceivedField> _receivedFields = new();");
-            sb.AppendLine("        // Editable cells for the selected message's currently chosen array field.");
-            sb.AppendLine("        private readonly ObservableCollection<ArrayCellRow> _arrayCells = new();");
             sb.AppendLine("        // Periodic sends run on PrecisionTimer threads (1 ms resolution, drift-free),");
             sb.AppendLine("        // never on the UI thread, so a 10 ms cadence stays accurate while the UI works.");
             sb.AppendLine("        private readonly Dictionary<string, PrecisionTimer> _periodicTimers = new();");
             sb.AppendLine("        private readonly ObservableCollection<ScenarioStepRow> _scenarioSteps = new();");
             sb.AppendLine("        private readonly List<DispatcherTimer> _scenarioTimers = new();");
             sb.AppendLine("        private readonly List<PrecisionTimer> _scenarioPrecisionTimers = new();");
+            sb.AppendLine("        // Armed Response steps: checked against every received message while the scenario runs.");
+            sb.AppendLine("        private readonly List<ResponseRule> _activeResponses = new();");
+            sb.AppendLine("        private bool _loadingResponseUi;");
             sb.AppendLine("        // The native wrapper writes into static physical structures; serialize access across threads.");
             sb.AppendLine("        private static readonly object _nativeLock = new();");
             sb.AppendLine("        private readonly ObservableCollection<FieldRow> _stepFields = new();");
@@ -1035,7 +1124,6 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            HistoryGrid.ItemsSource = _history;");
             sb.AppendLine("            MonitorGrid.ItemsSource = _monitor;");
             sb.AppendLine("            ReceivedFieldsGrid.ItemsSource = _receivedFields;");
-            sb.AppendLine("            ArrayCellsGrid.ItemsSource = _arrayCells;");
             sb.AppendLine("            ScenarioStepsList.ItemsSource = _scenarioSteps;");
             sb.AppendLine("            StepFieldsGrid.ItemsSource = _stepFields;");
             sb.AppendLine("            foreach (var m in MessageCatalog.Messages)");
@@ -1043,6 +1131,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                MessageList.Items.Add(m.Name);");
             sb.AppendLine("                AllMessagesList.Items.Add(m.Name);");
             sb.AppendLine("                AddGraphFilter(m.Name);");
+            sb.AppendLine("                ResponseTriggerCombo.Items.Add(m.Name);");
+            sb.AppendLine("                ResponseSendCombo.Items.Add(m.Name);");
             sb.AppendLine("            }");
             sb.AppendLine("            if (MessageList.Items.Count > 0)");
             sb.AppendLine("                MessageList.SelectedIndex = 0;");
@@ -1082,91 +1172,82 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        {");
             sb.AppendLine("            var info = Current;");
             sb.AppendLine("            _fields.Clear();");
-            sb.AppendLine("            _arrayCells.Clear();");
-            sb.AppendLine("            if (info is null) { ArraysGroup.Visibility = Visibility.Collapsed; return; }");
+            sb.AppendLine("            if (info is null) return;");
             sb.AppendLine("            SelectedMessageHeader.Text = info.Name;");
             sb.AppendLine("            MessageInfoText.Text = $\"Message Id: {info.MessageId}   Length: {info.Length} bytes\";");
+            sb.AppendLine("            // Merge the scalar fields and the array rows ordered by offset, so each array");
+            sb.AppendLine("            // appears as a nested (collapsible) table at its correct offset position.");
+            sb.AppendLine("            var arrays = new Queue<FieldRow>(info.Arrays.OrderBy(a => a.BaseOffset).Select(a => new FieldRow(a, Math.Min(1, a.MaxCount))));");
             sb.AppendLine("            foreach (var f in info.Fields)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                while (arrays.Count > 0 && arrays.Peek().Offset <= f.Offset)");
+            sb.AppendLine("                    _fields.Add(arrays.Dequeue());");
             sb.AppendLine("                _fields.Add(new FieldRow(f) { Value = f.DefaultValue });");
-            sb.AppendLine("            PopulateArrays(info);");
+            sb.AppendLine("            }");
+            sb.AppendLine("            while (arrays.Count > 0)");
+            sb.AppendLine("                _fields.Add(arrays.Dequeue());");
             sb.AppendLine("            RefreshHex();");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        // ---- Arrays editor: edit each cell of a repeated field before sending ----");
-            sb.AppendLine("        /// <summary>Fills the Arrays editor with the selected message's array fields.</summary>");
-            sb.AppendLine("        private void PopulateArrays(MessageInfo info)");
+            sb.AppendLine("        // ---- Arrays: nested per-cell editing inside the fields grid ----");
+            sb.AppendLine("        /// <summary>Clicking anywhere on an array row opens / closes its nested cells table.");
+            sb.AppendLine("        /// Attached as PreviewMouseLeftButtonUp on the whole grid so it always fires, and the");
+            sb.AppendLine("        /// row container's DetailsVisibility is set directly (a local value the DataGrid must");
+            sb.AppendLine("        /// honor; a RowStyle trigger can be overridden by the grid's own coercion).");
+            sb.AppendLine("        /// Clicks inside the expanded details are ignored so editing never collapses it.</summary>");
+            sb.AppendLine("        private void ArrayRow_ToggleOnClick(object sender, MouseButtonEventArgs e)");
             sb.AppendLine("        {");
-            sb.AppendLine("            ArraysCombo.ItemsSource = info.Arrays;");
-            sb.AppendLine("            if (info.Arrays.Length > 0)");
+            sb.AppendLine("            var element = e.OriginalSource as DependencyObject;");
+            sb.AppendLine("            while (element is not null && element is not System.Windows.Controls.DataGridRow)");
             sb.AppendLine("            {");
-            sb.AppendLine("                ArraysGroup.Visibility = Visibility.Visible;");
-            sb.AppendLine("                ArraysCombo.SelectedIndex = 0;");
+            sb.AppendLine("                if (element is System.Windows.Controls.Primitives.DataGridDetailsPresenter)");
+            sb.AppendLine("                    return; // click inside the nested cells table");
+            sb.AppendLine("                element = element is System.Windows.Media.Visual || element is System.Windows.Media.Media3D.Visual3D");
+            sb.AppendLine("                    ? System.Windows.Media.VisualTreeHelper.GetParent(element)");
+            sb.AppendLine("                    : LogicalTreeHelper.GetParent(element);");
             sb.AppendLine("            }");
-            sb.AppendLine("            else");
+            sb.AppendLine("            if (element is System.Windows.Controls.DataGridRow { DataContext: FieldRow { IsArray: true } row } container)");
             sb.AppendLine("            {");
-            sb.AppendLine("                ArraysGroup.Visibility = Visibility.Collapsed;");
-            sb.AppendLine("                ArrayInfoText.Text = \"(no arrays)\";");
+            sb.AppendLine("                row.IsExpanded = !row.IsExpanded;");
+            sb.AppendLine("                container.DetailsVisibility = row.IsExpanded ? Visibility.Visible : Visibility.Collapsed;");
             sb.AppendLine("            }");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        /// <summary>When an array is chosen, show one editable element by default.</summary>");
-            sb.AppendLine("        private void ArraysCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)");
+            sb.AppendLine("        /// <summary>Restores an array row's open state whenever its container is (re)created");
+            sb.AppendLine("        /// (initial load, scrolling / virtualization, ItemsSource refresh).</summary>");
+            sb.AppendLine("        private void ArrayRow_LoadingRow(object sender, System.Windows.Controls.DataGridRowEventArgs e)");
             sb.AppendLine("        {");
-            sb.AppendLine("            if (ArraysCombo.SelectedItem is not ArrayInfo array) { _arrayCells.Clear(); return; }");
-            sb.AppendLine("            var start = Math.Min(1, array.MaxCount);");
-            sb.AppendLine("            ArrayCountBox.Text = start.ToString();");
-            sb.AppendLine("            BuildArrayCells(array, start);");
+            sb.AppendLine("            e.Row.DetailsVisibility = e.Row.DataContext is FieldRow { IsArray: true, IsExpanded: true }");
+            sb.AppendLine("                ? Visibility.Visible : Visibility.Collapsed;");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        /// <summary>Applies the requested element count (clamped to the array maximum).</summary>");
+            sb.AppendLine("        /// <summary>Apply button inside an array row's nested table: rebuilds the cells to");
+            sb.AppendLine("        /// the requested element count and syncs the array's count field.</summary>");
             sb.AppendLine("        private void ApplyArrayCount_Click(object sender, RoutedEventArgs e)");
             sb.AppendLine("        {");
-            sb.AppendLine("            if (ArraysCombo.SelectedItem is not ArrayInfo array) return;");
-            sb.AppendLine("            if (!int.TryParse(ArrayCountBox.Text, out var count) || count < 0) { Log(\"Enter a valid element count.\"); return; }");
-            sb.AppendLine("            if (count > array.MaxCount) { count = array.MaxCount; ArrayCountBox.Text = count.ToString(); }");
-            sb.AppendLine("            BuildArrayCells(array, count);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        /// <summary>Builds one editable row per (element index x sub-field) and reflects the");
-            sb.AppendLine("        /// active element count in the array's count field so the receiver knows the length.</summary>");
-            sb.AppendLine("        private void BuildArrayCells(ArrayInfo array, int count)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _arrayCells.Clear();");
-            sb.AppendLine("            for (int i = 0; i < count; i++)");
-            sb.AppendLine("                foreach (var el in array.Elements)");
-            sb.AppendLine("                    _arrayCells.Add(new ArrayCellRow");
-            sb.AppendLine("                    {");
-            sb.AppendLine("                        Index = i,");
-            sb.AppendLine("                        Offset = array.BaseOffset + i * array.Stride + el.RelativeOffset,");
-            sb.AppendLine("                        Field = el.Field.Replace($\"[{array.IndexVar}]\", $\"[{i}]\", StringComparison.Ordinal),");
-            sb.AppendLine("                        Type = el.Type,");
-            sb.AppendLine("                        Value = \"0\"");
-            sb.AppendLine("                    });");
+            sb.AppendLine("            if ((sender as FrameworkElement)?.DataContext is not FieldRow { ArrayDef: { } array } row) return;");
+            sb.AppendLine("            var applied = row.RebuildCells(int.TryParse(row.CountText, out var n) ? n : 0);");
+            sb.AppendLine("            // Reflect the element count in the array's count field so the receiver knows the length.");
             sb.AppendLine("            if (array.CountField is not null)");
-            sb.AppendLine("                foreach (var row in _fields)");
-            sb.AppendLine("                    if (row.Field == array.CountField) row.Value = count.ToString();");
-            sb.AppendLine("            ArrayInfoText.Text = $\"{count} element(s) x {array.Elements.Length} sub-field(s) = {_arrayCells.Count} cell(s), max {array.MaxCount}\";");
+            sb.AppendLine("                foreach (var f in _fields)");
+            sb.AppendLine("                    if (!f.IsArray && f.Field == array.CountField) f.Value = applied.ToString();");
             sb.AppendLine("            RefreshHex();");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        /// <summary>Restricts the element-count box to digits.</summary>");
-            sb.AppendLine("        private void ArrayCountBox_PreviewTextInput(object sender, TextCompositionEventArgs e)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            e.Handled = !e.Text.All(char.IsDigit);");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-            sb.AppendLine("        /// <summary>Independent copy of the array cells for a background (timer) send.</summary>");
+            sb.AppendLine("        /// <summary>Independent copy of all array cells (from the nested tables) for a background send.</summary>");
             sb.AppendLine("        private List<ArrayCellRow> SnapshotArrayCells()");
             sb.AppendLine("        {");
-            sb.AppendLine("            var list = new List<ArrayCellRow>(_arrayCells.Count);");
-            sb.AppendLine("            foreach (var c in _arrayCells)");
-            sb.AppendLine("                list.Add(new ArrayCellRow { Index = c.Index, Offset = c.Offset, Field = c.Field, Type = c.Type, Value = c.Value });");
+            sb.AppendLine("            var list = new List<ArrayCellRow>();");
+            sb.AppendLine("            foreach (var row in _fields)");
+            sb.AppendLine("                if (row.IsArray)");
+            sb.AppendLine("                    foreach (var c in row.Cells)");
+            sb.AppendLine("                        list.Add(new ArrayCellRow { Index = c.Index, Offset = c.Offset, Field = c.Field, Type = c.Type, Value = c.Value });");
             sb.AppendLine("            return list;");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        // ---- Buffer building via the native wrapper ----");
             sb.AppendLine("        private byte[] BuildBuffer(MessageInfo info, IReadOnlyList<FieldRow> fields) =>");
-            sb.AppendLine("            BuildBufferCore(info, fields, _arrayCells.ToList(), _sequence, AutoSequenceCheck.IsChecked == true,");
+            sb.AppendLine("            BuildBufferCore(info, fields, SnapshotArrayCells(), _sequence, AutoSequenceCheck.IsChecked == true,");
             sb.AppendLine("                AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);");
             sb.AppendLine();
             sb.AppendLine("        /// <summary>Thread-safe buffer build (no UI access) usable from PrecisionTimer threads.");
@@ -1314,14 +1395,18 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            Log($\"{info.Name}: precision periodic started ({interval} ms, {(howMany == 0 ? \"unlimited\" : howMany.ToString())}).\");");
             sb.AppendLine("        }");
             sb.AppendLine();
-            sb.AppendLine("        /// <summary>Creates an independent copy of the message's current field values.</summary>");
+            sb.AppendLine("        /// <summary>Creates an independent copy of the message's current field values");
+            sb.AppendLine("        /// (keyed by field path because the grid also contains nested array rows).</summary>");
             sb.AppendLine("        private List<FieldRow> SnapshotFields(MessageInfo info)");
             sb.AppendLine("        {");
+            sb.AppendLine("            var current = new Dictionary<string, string>();");
+            sb.AppendLine("            foreach (var row in _fields)");
+            sb.AppendLine("                if (!row.IsArray) current[row.Field] = row.Value;");
             sb.AppendLine("            var list = new List<FieldRow>(info.Fields.Length);");
-            sb.AppendLine("            for (int i = 0; i < info.Fields.Length; i++)");
+            sb.AppendLine("            foreach (var f in info.Fields)");
             sb.AppendLine("            {");
-            sb.AppendLine("                var row = new FieldRow(info.Fields[i]);");
-            sb.AppendLine("                row.Value = i < _fields.Count ? _fields[i].Value : info.Fields[i].DefaultValue;");
+            sb.AppendLine("                var row = new FieldRow(f);");
+            sb.AppendLine("                row.Value = current.TryGetValue(f.Field, out var v) ? v : f.DefaultValue;");
             sb.AppendLine("                list.Add(row);");
             sb.AppendLine("            }");
             sb.AppendLine("            return list;");
@@ -1448,6 +1533,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            var name = info?.Name ?? $\"Unknown (0x{msgId:X})\";");
             sb.AppendLine("            RecordTimelineEvent(false, name, \"RECEIVED\", $\"{data.Length} bytes from {from}\", data);");
             sb.AppendLine("            UpdateStat(name, data.Length, outgoing: false, error: data.Length < 2, dropped: info is null && data.Length >= 2, crcError: HasCrcError(info, data));");
+            sb.AppendLine("            // Scenario Response steps may auto-send a reply when this message matches their rule.");
+            sb.AppendLine("            CheckScenarioResponses(info, name, data);");
             sb.AppendLine("            _monitor.Insert(0, new MonitorRow");
             sb.AppendLine("            {");
             sb.AppendLine("                Time = DateTime.Now.ToString(\"HH:mm:ss.fff\"), From = from, Message = name, Bytes = data.Length");
@@ -1509,7 +1596,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            if (info is null) return;");
             sb.AppendLine("            var dlg = new Microsoft.Win32.SaveFileDialog { Filter = \"JSON|*.json\", FileName = info.Name + \".json\" };");
             sb.AppendLine("            if (dlg.ShowDialog() != true) return;");
-            sb.AppendLine("            var map = _fields.ToDictionary(f => f.Field, f => f.Value);");
+            sb.AppendLine("            var map = _fields.Where(f => !f.IsArray).ToDictionary(f => f.Field, f => f.Value);");
             sb.AppendLine("            File.WriteAllText(dlg.FileName, JsonSerializer.Serialize(map, new JsonSerializerOptions { WriteIndented = true }));");
             sb.AppendLine("            Log($\"Export_{info.Name}: written to {dlg.FileName}.\");");
             sb.AppendLine("        }");
@@ -1642,6 +1729,7 @@ namespace InterfaceWrapper.Services
                     {
                         if (e.Data.GetData(DataFormats.StringFormat) is not string name) return;
                         if (name == SleepDragToken) AddSleepStep();
+                        else if (name == ResponseDragToken) AddResponseStep();
                         else AddScenarioStep(name);
                     }
 
@@ -1677,14 +1765,164 @@ namespace InterfaceWrapper.Services
                         Log($"Sleep step added ({ms} ms).");
                     }
 
+                    // ---- Response operation: when a message is received and a chosen field equals
+                    // a value, automatically send a configured message ----
+                    private const string ResponseDragToken = "::RESPONSE::";
+
+                    private void ResponseItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+                    {
+                        _dragStartPoint = e.GetPosition(null);
+                        if (e.ClickCount == 2) AddResponseStep();
+                    }
+
+                    private void ResponseItem_PreviewMouseMove(object sender, MouseEventArgs e)
+                    {
+                        if (e.LeftButton != MouseButtonState.Pressed) return;
+                        var pos = e.GetPosition(null);
+                        if (Math.Abs(pos.X - _dragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                            Math.Abs(pos.Y - _dragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+                        DragDrop.DoDragDrop(ResponseDragItem, ResponseDragToken, DragDropEffects.Copy);
+                    }
+
+                    /// <summary>Adds a Response step; configure it in the right panel: 1) the message to
+                    /// receive, 2) the field and expected value, 3) the message to send when it matches.</summary>
+                    private void AddResponseStep()
+                    {
+                        var first = MessageCatalog.Messages.FirstOrDefault();
+                        if (first is null) return;
+                        var step = new ScenarioStepRow
+                        {
+                            Message = first.Name, IsResponse = true,
+                            ResponseTrigger = first.Name,
+                            ResponseField = first.Fields.FirstOrDefault()?.Field ?? string.Empty,
+                            ResponseValue = "0",
+                            FieldValues = first.Fields.ToDictionary(f => f.Field, f => f.DefaultValue),
+                            TimeMs = 0, PeriodicIntervalMs = 0, Periodic = false, MaxMessages = 0
+                        };
+                        _scenarioSteps.Add(step);
+                        RenumberSteps();
+                        ScenarioStepsList.SelectedItem = step;
+                        Log("Response step added: choose the received message, its field, the expected value and the message to send.");
+                    }
+
+                    /// <summary>Loads the Response editor controls from the selected step.</summary>
+                    private void ShowResponseEditor(ScenarioStepRow step)
+                    {
+                        _loadingResponseUi = true;
+                        ResponseEditPanel.Visibility = Visibility.Visible;
+                        ResponseTriggerCombo.SelectedItem = step.ResponseTrigger;
+                        PopulateResponseFields(step.ResponseTrigger);
+                        ResponseFieldCombo.SelectedItem = string.IsNullOrEmpty(step.ResponseField) ? null : step.ResponseField;
+                        ResponseValueBox.Text = step.ResponseValue;
+                        ResponseSendCombo.SelectedItem = step.Message;
+                        _loadingResponseUi = false;
+                    }
+
+                    private void PopulateResponseFields(string messageName)
+                    {
+                        ResponseFieldCombo.Items.Clear();
+                        var info = MessageCatalog.ByName(messageName);
+                        if (info is null) return;
+                        foreach (var f in info.Fields) ResponseFieldCombo.Items.Add(f.Field);
+                    }
+
+                    private void ResponseTriggerCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingResponseUi || _editingStep is not { IsResponse: true } step) return;
+                        step.ResponseTrigger = ResponseTriggerCombo.SelectedItem as string ?? string.Empty;
+                        PopulateResponseFields(step.ResponseTrigger);
+                        if (ResponseFieldCombo.Items.Count > 0) ResponseFieldCombo.SelectedIndex = 0;
+                    }
+
+                    private void ResponseFieldCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingResponseUi || _editingStep is not { IsResponse: true } step) return;
+                        step.ResponseField = ResponseFieldCombo.SelectedItem as string ?? string.Empty;
+                    }
+
+                    private void ResponseValueBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+                    {
+                        if (_loadingResponseUi || _editingStep is not { IsResponse: true } step) return;
+                        step.ResponseValue = ResponseValueBox.Text;
+                    }
+
+                    private void ResponseSendCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingResponseUi || _editingStep is not { IsResponse: true } step) return;
+                        var name = ResponseSendCombo.SelectedItem as string ?? string.Empty;
+                        if (name.Length == 0 || step.Message == name) return;
+                        step.Message = name;
+                        var info = MessageCatalog.ByName(name);
+                        step.FieldValues = info?.Fields.ToDictionary(f => f.Field, f => f.DefaultValue);
+                        LoadStepFields(step);
+                    }
+
+                    /// <summary>Registers a Response step as an active rule for the running scenario.</summary>
+                    private void ArmResponse(ScenarioStepRow step)
+                    {
+                        var send = MessageCatalog.ByName(step.Message);
+                        var trigger = MessageCatalog.ByName(step.ResponseTrigger);
+                        if (send is null || trigger is null || string.IsNullOrEmpty(step.ResponseField))
+                        {
+                            Log($"Step {step.Index}: response not armed (choose the received message, field and message to send).");
+                            return;
+                        }
+                        _activeResponses.Add(new ResponseRule
+                        {
+                            TriggerName = trigger.Name,
+                            Field = step.ResponseField,
+                            Value = step.ResponseValue,
+                            Send = send,
+                            SendFields = BuildStepFields(send, step),
+                            SendArrayCells = BuildStepArrayCells(send, step),
+                            StepIndex = step.Index
+                        });
+                        Log($"Step {step.Index}: response armed - when {trigger.Name}.{step.ResponseField} == {step.ResponseValue}, send {send.Name}.");
+                    }
+
+                    /// <summary>Checks a received message against the armed Response rules and sends
+                    /// the configured reply when the chosen field equals the expected value.</summary>
+                    private void CheckScenarioResponses(MessageInfo? info, string name, byte[] data)
+                    {
+                        if (!_scenarioRunning || _activeResponses.Count == 0 || info is null) return;
+                        foreach (var rule in _activeResponses)
+                        {
+                            if (rule.TriggerName != name) continue;
+                            var field = info.Fields.FirstOrDefault(f => f.Field == rule.Field);
+                            if (field is null) continue;
+                            var actual = field.Read(data);
+                            if (!ResponseValuesEqual(actual, rule.Value)) continue;
+                            Log($"Step {rule.StepIndex}: response triggered ({name}.{rule.Field} == {rule.Value}) -> sending {rule.Send.Name}.");
+                            SendMessageCore(rule.Send, rule.SendFields, rule.SendArrayCells, false,
+                                AutoSequenceCheck.IsChecked == true, AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);
+                        }
+                    }
+
+                    /// <summary>Compares field values as text first, then numerically.</summary>
+                    private static bool ResponseValuesEqual(string actual, string expected)
+                    {
+                        if (string.Equals(actual.Trim(), expected.Trim(), StringComparison.OrdinalIgnoreCase)) return true;
+                        return double.TryParse(actual, NumberStyles.Float, CultureInfo.InvariantCulture, out var a)
+                            && double.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var b)
+                            && Math.Abs(a - b) < 1e-9;
+                    }
+
                     /// <summary>Adds a message to the scenario; the same message can be added any number of times.</summary>
                     private void AddScenarioStep(string messageName)
                     {
                         var info = MessageCatalog.ByName(messageName);
                         if (info is null) return;
-                        var values = ReferenceEquals(info, Current)
-                            ? _fields.ToDictionary(f => f.Field, f => f.Value)
-                            : info.Fields.ToDictionary(f => f.Field, f => f.DefaultValue);
+                        var values = info.Fields.ToDictionary(f => f.Field, f => f.DefaultValue);
+                        if (ReferenceEquals(info, Current))
+                        {
+                            // Carry over the Simulator editor values, including array cells and counts.
+                            foreach (var row in _fields)
+                            {
+                                if (!row.IsArray) { values[row.Field] = row.Value; continue; }
+                                values[row.Field + "#count"] = row.CountText;
+                                foreach (var cell in row.Cells) values[cell.Field] = cell.Value;
+                            }
+                        }
                         _scenarioSteps.Add(new ScenarioStepRow
                         {
                             Message = messageName, TimeMs = 0, PeriodicIntervalMs = 1000,
@@ -1698,12 +1936,13 @@ namespace InterfaceWrapper.Services
                         for (int i = 0; i < _scenarioSteps.Count; i++) _scenarioSteps[i].Index = i;
                     }
 
-                    /// <summary>Shows the clicked step's fields; edits sync straight into the step,
-                    /// so Run and Save always use the values shown in the editor.</summary>
+                    /// <summary>Shows the clicked step's editor: field values for a message step, the
+                    /// sleep summary for a Sleep step, or the Response rule editor for a Response step.</summary>
                     private void ScenarioStepsList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
                     {
                         _stepFields.Clear();
                         _editingStep = ScenarioStepsList.SelectedItem as ScenarioStepRow;
+                        ResponseEditPanel.Visibility = Visibility.Collapsed;
                         if (_editingStep is null)
                         {
                             StepFieldsHeader.Text = "Step Fields (select a step)";
@@ -1714,13 +1953,33 @@ namespace InterfaceWrapper.Services
                             StepFieldsHeader.Text = $"Step {_editingStep.Index}: \u23F1 Sleep {_editingStep.TimeMs} ms";
                             return;
                         }
-                        var info = MessageCatalog.ByName(_editingStep.Message);
+                        if (_editingStep.IsResponse)
+                        {
+                            StepFieldsHeader.Text = $"Step {_editingStep.Index}: \u21C4 Response";
+                            ShowResponseEditor(_editingStep);
+                        }
+                        else
+                        {
+                            StepFieldsHeader.Text = $"Step {_editingStep.Index}: {_editingStep.Message}";
+                        }
+                        LoadStepFields(_editingStep);
+                    }
+
+                    /// <summary>Fills the Step Fields grid with the values the step sends: scalar
+                    /// fields and collapsible array rows merged by offset (like the Simulator tab);
+                    /// edits sync straight into the step so Run and Save use what is shown.</summary>
+                    private void LoadStepFields(ScenarioStepRow step)
+                    {
+                        _stepFields.Clear();
+                        var info = MessageCatalog.ByName(step.Message);
                         if (info is null) { StepFieldsHeader.Text = "Step Fields (unknown message)"; return; }
-                        StepFieldsHeader.Text = $"Step {_editingStep.Index}: {_editingStep.Message}";
-                        var step = _editingStep;
                         step.FieldValues ??= info.Fields.ToDictionary(f => f.Field, f => f.DefaultValue);
+                        var arrays = new Queue<FieldRow>(info.Arrays.OrderBy(a => a.BaseOffset)
+                            .Select(a => CreateStepArrayRow(a, step)));
                         foreach (var f in info.Fields)
                         {
+                            while (arrays.Count > 0 && arrays.Peek().Offset <= f.Offset)
+                                _stepFields.Add(arrays.Dequeue());
                             var row = new FieldRow(f)
                             {
                                 Value = step.FieldValues.TryGetValue(f.Field, out var v) ? v : f.DefaultValue
@@ -1732,6 +1991,52 @@ namespace InterfaceWrapper.Services
                             };
                             _stepFields.Add(row);
                         }
+                        while (arrays.Count > 0)
+                            _stepFields.Add(arrays.Dequeue());
+                    }
+
+                    /// <summary>Creates an array row for the step editor: restores the saved element
+                    /// count and cell values and syncs every edit back into the step.</summary>
+                    private static FieldRow CreateStepArrayRow(ArrayInfo array, ScenarioStepRow step)
+                    {
+                        var count = Math.Min(1, array.MaxCount);
+                        if (step.FieldValues is not null &&
+                            step.FieldValues.TryGetValue(array.Name + "#count", out var saved) &&
+                            int.TryParse(saved, out var n))
+                            count = n;
+                        var row = new FieldRow(array, count);
+                        WireStepArrayCells(row, step);
+                        return row;
+                    }
+
+                    /// <summary>Restores the saved cell values of an array row and syncs edits into the step.</summary>
+                    private static void WireStepArrayCells(FieldRow row, ScenarioStepRow step)
+                    {
+                        step.FieldValues ??= new Dictionary<string, string>();
+                        step.FieldValues[row.Field + "#count"] = row.CountText;
+                        foreach (var cell in row.Cells)
+                        {
+                            if (step.FieldValues.TryGetValue(cell.Field, out var v)) cell.Value = v;
+                            cell.PropertyChanged += (_, args) =>
+                            {
+                                if (args.PropertyName == nameof(ArrayCellRow.Value) && step.FieldValues is not null)
+                                    step.FieldValues[cell.Field] = cell.Value;
+                            };
+                        }
+                    }
+
+                    /// <summary>Apply button inside a step array row's nested table: rebuilds the cells
+                    /// to the requested count, restores saved values and updates the count field.</summary>
+                    private void ApplyStepArrayCount_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (_editingStep is not { } step) return;
+                        if ((sender as FrameworkElement)?.DataContext is not FieldRow { ArrayDef: { } array } row) return;
+                        var applied = row.RebuildCells(int.TryParse(row.CountText, out var n) ? n : 0);
+                        WireStepArrayCells(row, step);
+                        // Reflect the element count in the array's count field so the receiver knows the length.
+                        if (array.CountField is not null)
+                            foreach (var f in _stepFields)
+                                if (!f.IsArray && f.Field == array.CountField) f.Value = applied.ToString();
                     }
 
 
@@ -1807,13 +2112,15 @@ namespace InterfaceWrapper.Services
                     }
 
                     // ---- Scenario execution: every step is scheduled independently (asynchronously);
-                    // a Sleep step pauses the scenario timeline, delaying every step after it. ----
+                    // a Sleep step pauses the scenario timeline, delaying every step after it;
+                    // a Response step arms an auto-reply that fires when its message arrives. ----
                     private void RunScenario_Click(object sender, RoutedEventArgs e)
                     {
                         if (_scenarioRunning) { Log("Scenario is already running."); return; }
                         if (_transport is null) { Log("Start the transport before running a scenario."); return; }
                         if (_scenarioSteps.Count == 0) { Log("The scenario has no steps."); return; }
                         _scenarioRunning = true;
+                        _activeResponses.Clear();
                         long sleepOffsetMs = 0;
                         foreach (var step in _scenarioSteps)
                         {
@@ -1823,9 +2130,14 @@ namespace InterfaceWrapper.Services
                                 sleepOffsetMs += Math.Max(0, step.TimeMs);
                                 continue;
                             }
+                            if (step.IsResponse)
+                            {
+                                ArmResponse(step);
+                                continue;
+                            }
                             ScheduleStep(step, sleepOffsetMs);
                         }
-                        Log($"Scenario started ({_scenarioSteps.Count} step(s)).");
+                        Log($"Scenario started ({_scenarioSteps.Count} step(s), {_activeResponses.Count} response rule(s)).");
                     }
 
                     /// <summary>Logs the moment the running scenario reaches a Sleep step.</summary>
@@ -1848,10 +2160,11 @@ namespace InterfaceWrapper.Services
                     /// periodic repeats run on a PrecisionTimer for millisecond-accurate cadence.</summary>
                     private void ScheduleStep(ScenarioStepRow step, long extraDelayMs = 0)
                     {
-                        if (step.IsSleep) return; // sleep steps only shift the timeline (handled in Run)
+                        if (step.IsSleep || step.IsResponse) return; // handled in RunScenario_Click
                         var info = MessageCatalog.ByName(step.Message);
                         if (info is null) { Log($"Step {step.Index}: unknown message '{step.Message}'."); return; }
                         var fields = BuildStepFields(info, step);
+                        var arrayCells = BuildStepArrayCells(info, step);
                         // The start delay includes the accumulated Sleep steps that precede this step.
                         var startTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(1, step.TimeMs + extraDelayMs)) };
                         startTimer.Tick += (_, _) =>
@@ -1859,7 +2172,7 @@ namespace InterfaceWrapper.Services
                             startTimer.Stop();
                             _scenarioTimers.Remove(startTimer);
                             if (!_scenarioRunning) return;
-                            SendMessageCore(info, fields, null, step.Periodic, AutoSequenceCheck.IsChecked == true, AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);
+                            SendMessageCore(info, fields, arrayCells, step.Periodic, AutoSequenceCheck.IsChecked == true, AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);
                             if (!step.Periodic || step.PeriodicIntervalMs <= 0 || step.MaxMessages == 1) return;
                             // Snapshot the auto flags on the UI thread; the repeats run off the UI thread.
                             bool autoSeq = AutoSequenceCheck.IsChecked == true;
@@ -1872,7 +2185,7 @@ namespace InterfaceWrapper.Services
                                 if (!_scenarioRunning) return;
                                 var i = Interlocked.Increment(ref sent);
                                 if (step.MaxMessages > 0 && i > step.MaxMessages) return;
-                                SendMessageCore(info, fields, null, true, autoSeq, autoTs, autoCrc);
+                                SendMessageCore(info, fields, arrayCells, true, autoSeq, autoTs, autoCrc);
                                 if (step.MaxMessages > 0 && i == step.MaxMessages)
                                 {
                                     periodicTimer!.Dispose();
@@ -1899,6 +2212,35 @@ namespace InterfaceWrapper.Services
                         return list;
                     }
 
+                    /// <summary>Builds the array cells for a step from its saved values, so the
+                    /// scenario sends the array data typed in the step editor.</summary>
+                    private static List<ArrayCellRow> BuildStepArrayCells(MessageInfo info, ScenarioStepRow step)
+                    {
+                        var cells = new List<ArrayCellRow>();
+                        if (step.FieldValues is null) return cells;
+                        foreach (var array in info.Arrays)
+                        {
+                            var count = 0;
+                            if (step.FieldValues.TryGetValue(array.Name + "#count", out var saved))
+                                _ = int.TryParse(saved, out count);
+                            count = Math.Clamp(count, 0, array.MaxCount);
+                            for (int i = 0; i < count; i++)
+                                foreach (var el in array.Elements)
+                                {
+                                    var field = el.Field.Replace($"[{array.IndexVar}]", $"[{i}]", StringComparison.Ordinal);
+                                    cells.Add(new ArrayCellRow
+                                    {
+                                        Index = i,
+                                        Offset = array.BaseOffset + i * array.Stride + el.RelativeOffset,
+                                        Field = field,
+                                        Type = el.Type,
+                                        Value = step.FieldValues.TryGetValue(field, out var v) ? v : "0"
+                                    });
+                                }
+                        }
+                        return cells;
+                    }
+
                     private void StopScenario_Click(object sender, RoutedEventArgs e)
                     {
                         StopScenarioTimers();
@@ -1910,6 +2252,7 @@ namespace InterfaceWrapper.Services
                         _scenarioRunning = false;
                         foreach (var timer in _scenarioTimers) timer.Stop();
                         _scenarioTimers.Clear();
+                        _activeResponses.Clear();
                         lock (_scenarioPrecisionTimers)
                         {
                             foreach (var timer in _scenarioPrecisionTimers) timer.Dispose();
@@ -2830,6 +3173,10 @@ namespace InterfaceWrapper.Services
                     private bool _periodic;
                     private int _maxMessages;
                     private bool _isSleep;
+                    private bool _isResponse;
+                    private string _responseTrigger = string.Empty;
+                    private string _responseField = string.Empty;
+                    private string _responseValue = "0";
 
                     /// <summary>The JSON prefix number; also the send order shown in the grid.</summary>
                     public int Index { get => _index; set { _index = value; OnChanged(nameof(Index)); } }
@@ -2845,7 +3192,17 @@ namespace InterfaceWrapper.Services
                     /// <summary>True for a Sleep operation step: TimeMs holds the sleep duration and
                     /// every step after it is delayed by that amount when the scenario runs.</summary>
                     public bool IsSleep { get => _isSleep; set { _isSleep = value; OnChanged(nameof(IsSleep)); OnChanged(nameof(SendType)); } }
-                    public string SendType => IsSleep ? "Sleep" : Periodic ? "Periodic" : "One Time";
+                    /// <summary>True for a Response operation step: when <see cref="ResponseTrigger"/> is
+                    /// received and <see cref="ResponseField"/> equals <see cref="ResponseValue"/>, the
+                    /// step's Message is sent with its saved field values.</summary>
+                    public bool IsResponse { get => _isResponse; set { _isResponse = value; OnChanged(nameof(IsResponse)); OnChanged(nameof(SendType)); } }
+                    /// <summary>The message that must be received to evaluate the response rule.</summary>
+                    public string ResponseTrigger { get => _responseTrigger; set { _responseTrigger = value; OnChanged(nameof(ResponseTrigger)); } }
+                    /// <summary>The field of the received message that is compared.</summary>
+                    public string ResponseField { get => _responseField; set { _responseField = value; OnChanged(nameof(ResponseField)); } }
+                    /// <summary>The expected value of the compared field.</summary>
+                    public string ResponseValue { get => _responseValue; set { _responseValue = value; OnChanged(nameof(ResponseValue)); } }
+                    public string SendType => IsSleep ? "Sleep" : IsResponse ? "Response" : Periodic ? "Periodic" : "One Time";
                     /// <summary>The message field values saved in the step JSON file.</summary>
                     public Dictionary<string, string>? FieldValues { get; set; }
 
@@ -2885,7 +3242,11 @@ namespace InterfaceWrapper.Services
                                 new XAttribute("periodicInterval", step.PeriodicIntervalMs),
                                 new XAttribute("periodic", step.Periodic ? "true" : "false"),
                                 new XAttribute("maxMessages", step.MaxMessages),
-                                new XAttribute("sleep", step.IsSleep ? "true" : "false")));
+                                new XAttribute("sleep", step.IsSleep ? "true" : "false"),
+                                new XAttribute("response", step.IsResponse ? "true" : "false"),
+                                new XAttribute("responseTrigger", step.ResponseTrigger),
+                                new XAttribute("responseField", step.ResponseField),
+                                new XAttribute("responseValue", step.ResponseValue)));
 
                             var json = JsonSerializer.Serialize(
                                 step.FieldValues ?? new Dictionary<string, string>(),
@@ -2917,7 +3278,11 @@ namespace InterfaceWrapper.Services
                                 PeriodicIntervalMs = ReadInt(section, "periodicInterval", 0),
                                 Periodic = string.Equals((string?)section.Attribute("periodic"), "true", StringComparison.OrdinalIgnoreCase),
                                 MaxMessages = ReadInt(section, "maxMessages", 0),
-                                IsSleep = string.Equals((string?)section.Attribute("sleep"), "true", StringComparison.OrdinalIgnoreCase)
+                                IsSleep = string.Equals((string?)section.Attribute("sleep"), "true", StringComparison.OrdinalIgnoreCase),
+                                IsResponse = string.Equals((string?)section.Attribute("response"), "true", StringComparison.OrdinalIgnoreCase),
+                                ResponseTrigger = (string?)section.Attribute("responseTrigger") ?? string.Empty,
+                                ResponseField = (string?)section.Attribute("responseField") ?? string.Empty,
+                                ResponseValue = (string?)section.Attribute("responseValue") ?? "0"
                             };
 
                             // The JSON file prefixed with the index carries the message name and its values.
@@ -2944,6 +3309,8 @@ namespace InterfaceWrapper.Services
         {
             var sb = new StringBuilder();
             sb.AppendLine("using System;");
+            sb.AppendLine("using System.Collections.Generic;");
+            sb.AppendLine("using System.Collections.ObjectModel;");
             sb.AppendLine("using System.ComponentModel;");
             sb.AppendLine("using System.Globalization;");
             sb.AppendLine("using System.Runtime.InteropServices;");
@@ -2980,22 +3347,82 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        }");
             sb.AppendLine("    }");
             sb.AppendLine();
-            sb.AppendLine("    /// <summary>Editable row bound to the fields DataGrid.</summary>");
+            sb.AppendLine("    /// <summary>Editable row bound to the fields DataGrid. A row is either a scalar field");
+            sb.AppendLine("    /// or an array header whose Cells expand into a nested table at the array's offset.</summary>");
             sb.AppendLine("    public sealed class FieldRow : INotifyPropertyChanged");
             sb.AppendLine("    {");
-            sb.AppendLine("        private readonly FieldInfo _info;");
+            sb.AppendLine("        private readonly FieldInfo? _info;");
+            sb.AppendLine("        private readonly ArrayInfo? _array;");
             sb.AppendLine("        private string _value = \"0\";");
+            sb.AppendLine("        private bool _isExpanded;");
+            sb.AppendLine("        private string _countText = \"1\";");
             sb.AppendLine("        public FieldRow(FieldInfo info) { _info = info; }");
-            sb.AppendLine("        public int Offset => _info.Offset;");
-            sb.AppendLine("        public string Field => _info.Field;");
-            sb.AppendLine("        public string Type => _info.Type;");
-            sb.AppendLine("        public int Size => _info.Size;");
-            sb.AppendLine("        public string Value { get => _value; set { _value = value; OnChanged(nameof(Value)); } }");
             sb.AppendLine();
-            sb.AppendLine("        /// <summary>Writes the edited value straight into the interface buffer image.</summary>");
+            sb.AppendLine("        /// <summary>Creates an array header row with the given initial element count.</summary>");
+            sb.AppendLine("        public FieldRow(ArrayInfo array, int initialCount)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            _array = array;");
+            sb.AppendLine("            RebuildCells(initialCount);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        public bool IsArray => _array is not null;");
+            sb.AppendLine("        public ArrayInfo? ArrayDef => _array;");
+            sb.AppendLine("        /// <summary>The editable cells of the nested array table (element x sub-field).</summary>");
+            sb.AppendLine("        public ObservableCollection<ArrayCellRow> Cells { get; } = new();");
+            sb.AppendLine();
+            sb.AppendLine("        public int Offset => _array?.BaseOffset ?? _info!.Offset;");
+            sb.AppendLine("        public string Field => _array?.Name ?? _info!.Field;");
+            sb.AppendLine("        public string Type => _array is null ? _info!.Type : \"ARRAY\";");
+            sb.AppendLine("        public int Size => _array?.Stride ?? _info!.Size;");
+            sb.AppendLine();
+            sb.AppendLine("        public string Value");
+            sb.AppendLine("        {");
+            sb.AppendLine("            get => _array is null ? _value : $\"[{CellElementCount} element(s)] click to open / close the cells\";");
+            sb.AppendLine("            set { if (_array is not null) return; _value = value; OnChanged(nameof(Value)); }");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        private int CellElementCount => _array is null || _array.Elements.Length == 0 ? 0 : Cells.Count / _array.Elements.Length;");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Expands / collapses the nested cells table under this array row.</summary>");
+            sb.AppendLine("        public bool IsExpanded { get => _isExpanded; set { _isExpanded = value; OnChanged(nameof(IsExpanded)); OnChanged(nameof(ExpanderGlyph)); } }");
+            sb.AppendLine("        public string CountText { get => _countText; set { _countText = value; OnChanged(nameof(CountText)); } }");
+            sb.AppendLine("        public string ExpanderGlyph => _isExpanded ? \"\\u25BC\" : \"\\u25B6\";");
+            sb.AppendLine("        public System.Windows.Visibility ExpanderVisibility => IsArray ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;");
+            sb.AppendLine("        public string ArraySummary => _array is null ? string.Empty");
+            sb.AppendLine("            : $\"stride {_array.Stride} B, max {_array.MaxCount}, {_array.Elements.Length} sub-field(s)\";");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Rebuilds one cell per (element x sub-field), clamped to the array maximum.</summary>");
+            sb.AppendLine("        public int RebuildCells(int count)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            if (_array is null) return 0;");
+            sb.AppendLine("            count = Math.Clamp(count, 0, _array.MaxCount);");
+            sb.AppendLine("            Cells.Clear();");
+            sb.AppendLine("            for (int i = 0; i < count; i++)");
+            sb.AppendLine("                foreach (var el in _array.Elements)");
+            sb.AppendLine("                    Cells.Add(new ArrayCellRow");
+            sb.AppendLine("                    {");
+            sb.AppendLine("                        Index = i,");
+            sb.AppendLine("                        Offset = _array.BaseOffset + i * _array.Stride + el.RelativeOffset,");
+            sb.AppendLine("                        Field = el.Field.Replace($\"[{_array.IndexVar}]\", $\"[{i}]\", StringComparison.Ordinal),");
+            sb.AppendLine("                        Type = el.Type,");
+            sb.AppendLine("                        Value = \"0\"");
+            sb.AppendLine("                    });");
+            sb.AppendLine("            _countText = count.ToString();");
+            sb.AppendLine("            OnChanged(nameof(CountText));");
+            sb.AppendLine("            OnChanged(nameof(Value));");
+            sb.AppendLine("            return count;");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Writes the edited value(s) straight into the interface buffer image.</summary>");
             sb.AppendLine("        public void WriteToBuffer(byte[] buffer)");
             sb.AppendLine("        {");
-            sb.AppendLine("            if (_info.Offset + _info.Size > buffer.Length) return;");
+            sb.AppendLine("            if (_array is not null)");
+            sb.AppendLine("            {");
+            sb.AppendLine("                // Array header row: write every nested cell at its own offset.");
+            sb.AppendLine("                foreach (var cell in Cells) cell.WriteToBuffer(buffer);");
+            sb.AppendLine("                return;");
+            sb.AppendLine("            }");
+            sb.AppendLine("            if (_info is null || _info.Offset + _info.Size > buffer.Length) return;");
             sb.AppendLine("            var ci = CultureInfo.InvariantCulture;");
             sb.AppendLine("            switch (_info.Type)");
             sb.AppendLine("            {");
@@ -3014,7 +3441,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine();
             sb.AppendLine("        private void WriteBytes(byte[] buffer, byte[] value)");
             sb.AppendLine("        {");
-            sb.AppendLine("            Array.Copy(value, 0, buffer, _info.Offset, Math.Min(value.Length, _info.Size));");
+            sb.AppendLine("            if (_info is null) return;");
+            sb.AppendLine("            System.Array.Copy(value, 0, buffer, _info.Offset, Math.Min(value.Length, _info.Size));");
             sb.AppendLine("        }");
             sb.AppendLine();
             sb.AppendLine("        public event PropertyChangedEventHandler? PropertyChanged;");
@@ -3169,6 +3597,19 @@ namespace InterfaceWrapper.Services
             sb.AppendLine();
             sb.AppendLine("        public event PropertyChangedEventHandler? PropertyChanged;");
             sb.AppendLine("        private void OnChanged(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>An armed scenario Response rule: when the trigger message is received");
+            sb.AppendLine("    /// and its field equals the expected value, the Send message is sent.</summary>");
+            sb.AppendLine("    public sealed class ResponseRule");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public string TriggerName { get; init; } = string.Empty;");
+            sb.AppendLine("        public string Field { get; init; } = string.Empty;");
+            sb.AppendLine("        public string Value { get; init; } = string.Empty;");
+            sb.AppendLine("        public MessageInfo Send { get; init; } = null!;");
+            sb.AppendLine("        public IReadOnlyList<FieldRow> SendFields { get; init; } = Array.Empty<FieldRow>();");
+            sb.AppendLine("        public IReadOnlyList<ArrayCellRow> SendArrayCells { get; init; } = Array.Empty<ArrayCellRow>();");
+            sb.AppendLine("        public int StepIndex { get; init; }");
             sb.AppendLine("    }");
             sb.AppendLine("}");
             return sb.ToString();
@@ -3688,8 +4129,10 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("## Features");
             sb.AppendLine();
             sb.AppendLine("- Message list with per-message editable field grid (Offset/Field/Type/Size/Value).");
-            sb.AppendLine("- Array fields are editable per element: pick an array, set the element count");
-            sb.AppendLine("  and edit each cell's value before sending (the count field is set for you).");
+            sb.AppendLine("- Array fields (e.g. bit/discrete arrays) appear as rows inside the fields grid");
+            sb.AppendLine("  at their real offset; the arrow expander opens a nested cells table under the");
+            sb.AppendLine("  row where every element can be edited, and collapses it when not needed. The");
+            sb.AppendLine("  element count box sets how many elements are sent (the count field is synced).");
             sb.AppendLine("- Auto sequence / timestamp / CRC toggles.");
             sb.AppendLine("- Live HEX preview built through the native convert functions.");
             sb.AppendLine("- Selectable transport: UDP, TCP (client or server) or RS232 serial.");
@@ -3698,11 +4141,16 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("- Export/Import message field values as JSON.");
             sb.AppendLine("- Scenario tab: drag messages from 'All Messages' into an ordered step list,");
             sb.AppendLine("  set per-step attributes (one time / periodic, start time, interval, max count)");
-            sb.AppendLine("  and run all steps in parallel. A Sleep operation can be dragged from the");
+            sb.AppendLine("  and run all steps in parallel. Step fields support arrays: expand an array");
+            sb.AppendLine("  row to type each cell's value (saved with the scenario and sent on run).");
+            sb.AppendLine("  A Sleep operation can be dragged from the");
             sb.AppendLine("  Operations panel under 'All Messages' (with a millisecond duration); when the");
             sb.AppendLine("  running scenario reaches the Sleep step it pauses the timeline for that long");
-            sb.AppendLine("  (every later step is delayed). A scenario is stored in its own folder as");
-            sb.AppendLine("  `Configuration.xml` plus one `{index}_{message}.json` file per step.");
+            sb.AppendLine("  (every later step is delayed). A Response operation (drag it the same way)");
+            sb.AppendLine("  waits for a chosen message: when it is received and the selected field equals");
+            sb.AppendLine("  the entered value, the configured message is sent automatically. A scenario");
+            sb.AppendLine("  is stored in its own folder as `Configuration.xml` plus one");
+            sb.AppendLine("  `{index}_{message}.json` file per step.");
             sb.AppendLine("- Record button: captures every incoming and outgoing message to a binary `.bin`");
             sb.AppendLine("  file. The Record tab opens such a file, lists the message types on the left,");
             sb.AppendLine("  shows every recorded message of the selected type in the table and decodes");
