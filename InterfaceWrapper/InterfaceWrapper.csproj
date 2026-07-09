@@ -16,4 +16,17 @@
     <EmbeddedResource Include="Templates\convlib.c" />
   </ItemGroup>
 
+  <!-- The generated WrapperFromCToSharp and GenericSim projects can be emitted under this
+       project's folder (e.g. into Messages\). They are standalone projects with their own
+       references (System.IO.Ports, WPF App/MainWindow); never compile them as part of this
+       tool, otherwise their sources break this build. -->
+  <ItemGroup>
+    <Compile Remove="**\GenericSim\**\*.cs" />
+    <Page Remove="**\GenericSim\**\*.xaml" />
+    <ApplicationDefinition Remove="**\GenericSim\**\App.xaml" />
+    <None Remove="**\GenericSim\**\*" />
+    <Compile Remove="**\WrapperFromCToSharp\**\*.cs" />
+    <None Remove="**\WrapperFromCToSharp\**\*" />
+  </ItemGroup>
+
 </Project>

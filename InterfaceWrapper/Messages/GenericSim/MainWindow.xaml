@@ -1,0 +1,1013 @@
+<Window x:Class="GenericSim.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MBT Side Professional Simulator" Height="820" Width="1380"
+        Background="{DynamicResource Theme.WindowBackground}" Foreground="{DynamicResource Theme.Foreground}">
+    <Window.Resources>
+        <!-- Theme brushes: swapped at runtime by the Look and Feel selector in the header. -->
+        <SolidColorBrush x:Key="Theme.WindowBackground" Color="#0E1621"/>
+        <SolidColorBrush x:Key="Theme.PanelBackground" Color="#0B1220"/>
+        <SolidColorBrush x:Key="Theme.Foreground" Color="#E6EDF3"/>
+        <SolidColorBrush x:Key="Theme.DimForeground" Color="#7A8CA0"/>
+        <SolidColorBrush x:Key="Theme.HeaderForeground" Color="#8FB4D9"/>
+        <SolidColorBrush x:Key="Theme.Border" Color="#22303C"/>
+        <SolidColorBrush x:Key="Theme.RowBackground" Color="#132030"/>
+        <SolidColorBrush x:Key="Theme.AltRowBackground" Color="#0F1A28"/>
+        <SolidColorBrush x:Key="Theme.Accent" Color="#1F6FEB"/>
+        <SolidColorBrush x:Key="Theme.TabBackground" Color="#8FB4D9"/>
+        <SolidColorBrush x:Key="Theme.TabForeground" Color="#000000"/>
+        <SolidColorBrush x:Key="Theme.GridHeaderForeground" Color="#000000"/>
+        <SolidColorBrush x:Key="Theme.GraphRx" Color="#FFFFFF"/>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource Theme.Foreground}"/></Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.HeaderForeground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}"/>
+            <Setter Property="Margin" Value="6"/>
+            <Setter Property="Padding" Value="6"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{DynamicResource Theme.WindowBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Foreground}"/>
+            <Setter Property="RowBackground" Value="{DynamicResource Theme.RowBackground}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource Theme.AltRowBackground}"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+        </Style>
+        <!-- Column header text follows the theme. -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Foreground" Value="{DynamicResource Theme.GridHeaderForeground}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="6,4"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource Theme.Accent}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Margin" Value="0,3"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource Theme.PanelBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.Foreground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Theme.Border}"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="{DynamicResource Theme.TabBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Theme.TabForeground}"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="14,4"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="MBT Side Simulator" FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Look &amp; Feel" VerticalAlignment="Center" Margin="6,0"/>
+                <ComboBox x:Name="ThemeCombo" Width="120" VerticalAlignment="Center" SelectedIndex="0"
+                          SelectionChanged="ThemeCombo_SelectionChanged" ToolTip="Change the application look and feel">
+                    <ComboBoxItem Content="Dark Blue"/>
+                    <ComboBoxItem Content="Midnight Black"/>
+                    <ComboBoxItem Content="Light"/>
+                    <ComboBoxItem Content="Military Green"/>
+                </ComboBox>
+                <TextBlock Text="Transport" VerticalAlignment="Center" Margin="6,0"/>
+                <ComboBox x:Name="TransportCombo" Width="75" VerticalAlignment="Center" SelectedIndex="0"
+                          SelectionChanged="TransportCombo_SelectionChanged">
+                    <ComboBoxItem Content="UDP"/>
+                    <ComboBoxItem Content="TCP"/>
+                    <ComboBoxItem Content="RS232"/>
+                </ComboBox>
+                <StackPanel x:Name="TcpModePanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="TCP Mode" VerticalAlignment="Center" Margin="8,0,6,0"/>
+                    <ComboBox x:Name="TcpModeCombo" Width="75" VerticalAlignment="Center" SelectedIndex="0">
+                        <ComboBoxItem Content="Client"/>
+                        <ComboBoxItem Content="Server"/>
+                    </ComboBox>
+                </StackPanel>
+                <StackPanel x:Name="NetworkPanel" Orientation="Horizontal">
+                    <TextBlock Text="Local Port" VerticalAlignment="Center" Margin="8,0,6,0"/>
+                    <TextBox x:Name="LocalPortBox" Text="5001" Width="60" VerticalAlignment="Center"/>
+                    <TextBlock Text="NIRON IP" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <TextBox x:Name="RemoteIpBox" Text="127.0.0.1" Width="100" VerticalAlignment="Center"/>
+                    <TextBlock Text="NIRON Port" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <TextBox x:Name="RemotePortBox" Text="5000" Width="60" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel x:Name="SerialPanel" Orientation="Horizontal" Visibility="Collapsed">
+                    <TextBlock Text="COM Port" VerticalAlignment="Center" Margin="8,0,6,0"/>
+                    <ComboBox x:Name="ComPortBox" Width="80" IsEditable="True" Text="COM1" VerticalAlignment="Center"/>
+                    <TextBlock Text="Baud" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <ComboBox x:Name="BaudRateBox" Width="80" IsEditable="True" Text="115200" VerticalAlignment="Center">
+                        <ComboBoxItem Content="4800"/>
+                        <ComboBoxItem Content="9600"/>
+                        <ComboBoxItem Content="19200"/>
+                        <ComboBoxItem Content="38400"/>
+                        <ComboBoxItem Content="57600"/>
+                        <ComboBoxItem Content="115200"/>
+                        <ComboBoxItem Content="230400"/>
+                        <ComboBoxItem Content="460800"/>
+                        <ComboBoxItem Content="921600"/>
+                    </ComboBox>
+                    <TextBlock Text="Parity" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <ComboBox x:Name="ParityBox" Width="70" VerticalAlignment="Center" SelectedIndex="0">
+                        <ComboBoxItem Content="None"/>
+                        <ComboBoxItem Content="Odd"/>
+                        <ComboBoxItem Content="Even"/>
+                        <ComboBoxItem Content="Mark"/>
+                        <ComboBoxItem Content="Space"/>
+                    </ComboBox>
+                    <TextBlock Text="Stop Bits" VerticalAlignment="Center" Margin="12,0,6,0"/>
+                    <ComboBox x:Name="StopBitsBox" Width="60" VerticalAlignment="Center" SelectedIndex="0">
+                        <ComboBoxItem Content="1"/>
+                        <ComboBoxItem Content="1.5"/>
+                        <ComboBoxItem Content="2"/>
+                    </ComboBox>
+                </StackPanel>
+                <Button x:Name="StartButton" Content="Start" Background="#238636" Margin="12,0,0,0" Click="Start_Click"/>
+                <Button x:Name="StopButton" Content="Stop" Background="#DA3633" Margin="6,0,0,0" Click="Stop_Click"/>
+                <Button x:Name="RecordButton" Content="● Record" Background="#6E40C9" Margin="6,0,0,0" Click="Record_Click"
+                        ToolTip="Record all incoming and outgoing messages to a binary file"/>
+            </StackPanel>
+        </Grid>
+
+        <TabControl Grid.Row="1" Background="{DynamicResource Theme.WindowBackground}" BorderBrush="{DynamicResource Theme.Border}">
+            <TabItem Header="Simulator">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="220"/>
+                    </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="360"/>
+            </Grid.ColumnDefinitions>
+
+            <GroupBox Grid.Column="0" Header="MBT → NIRON Messages">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Select a message to edit its own fields" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                    <StackPanel DockPanel.Dock="Bottom">
+                        <Button Content="Send Selected Message" Click="SendSelected_Click"/>
+                        <Button Content="Start Periodic Selected" Background="#238636" Click="StartPeriodic_Click"/>
+                        <Button Content="Stop Periodic Selected" Background="#DA3633" Click="StopPeriodic_Click"/>
+                        <Button Content="Stop All Periodic" Background="#8B2E1F" Click="StopAllPeriodic_Click"/>
+                        <Button Content="↓ Export Message (JSON)" Background="{DynamicResource Theme.Accent}" Click="ExportJson_Click"/>
+                        <Button Content="↑ Import Message (JSON)" Background="#1F8FA8" Click="ImportJson_Click"/>
+                    </StackPanel>
+                    <ListBox x:Name="MessageList" Background="{DynamicResource Theme.PanelBackground}" Foreground="{DynamicResource Theme.Foreground}" BorderBrush="{DynamicResource Theme.Border}"
+                             SelectionChanged="MessageList_SelectionChanged" Margin="0,0,0,6"/>
+                </DockPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Column="1">
+                <GroupBox.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="SelectedMessageHeader" Text="(no message)" FontSize="16" FontWeight="Bold" Foreground="{DynamicResource Theme.Foreground}"/>
+                        <CheckBox x:Name="AutoSequenceCheck" Content="Auto sequence" IsChecked="True" Foreground="{DynamicResource Theme.Foreground}" Margin="14,0,0,0" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="AutoTimestampCheck" Content="Auto timestamp" IsChecked="True" Foreground="{DynamicResource Theme.Foreground}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        <CheckBox x:Name="AutoCrcCheck" Content="Auto CRC" IsChecked="True" Foreground="{DynamicResource Theme.Foreground}" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </GroupBox.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="MessageInfoText" Grid.Row="0" Text="Message Id: -   Length: - bytes" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                    <DataGrid x:Name="FieldsGrid" Grid.Row="1" AutoGenerateColumns="False" CanUserAddRows="False" RowDetailsVisibilityMode="Collapsed"
+                              PreviewMouseLeftButtonUp="ArrayRow_ToggleOnClick" LoadingRow="ArrayRow_LoadingRow">
+                        <!-- An array field is a normal row at its real offset; clicking the row opens its
+                             cells as a nested table right below it (DetailsVisibility is set in code-behind
+                             because a RowStyle trigger can be overridden by the DataGrid's own coercion). -->
+                        <DataGrid.Columns>
+                            <!-- The arrow is a visual indicator; clicking anywhere on the array row
+                                 toggles the nested cells table (grid PreviewMouseLeftButtonUp). -->
+                            <DataGridTemplateColumn Width="30" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="Transparent" Cursor="Hand" Visibility="{Binding ExpanderVisibility}"
+                                                ToolTip="Click the row to open / close the array cells">
+                                            <TextBlock Text="{Binding ExpanderGlyph}" Foreground="{DynamicResource Theme.HeaderForeground}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" IsReadOnly="True" Width="70"/>
+                            <DataGridTextColumn Header="Field" Binding="{Binding Field}" IsReadOnly="True" Width="2*"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="90"/>
+                            <DataGridTextColumn Header="Size" Binding="{Binding Size}" IsReadOnly="True" Width="60"/>
+                            <DataGridTextColumn Header="Value" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                        </DataGrid.Columns>
+                        <DataGrid.RowDetailsTemplate>
+                            <DataTemplate>
+                                <Border Background="{DynamicResource Theme.PanelBackground}" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="1" CornerRadius="3" Margin="30,2,8,6" Padding="6">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="Elements" VerticalAlignment="Center" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                            <TextBox Text="{Binding CountText, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="6,0,0,0"/>
+                                            <Button Content="Apply" Width="60" Margin="6,0,0,0" Click="ApplyArrayCount_Click"/>
+                                            <TextBlock Text="{Binding ArraySummary}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                        </StackPanel>
+                                        <DataGrid ItemsSource="{Binding Cells}" AutoGenerateColumns="False" CanUserAddRows="False" MaxHeight="180">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Idx" Binding="{Binding Index}" IsReadOnly="True" Width="46"/>
+                                                <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" IsReadOnly="True" Width="60"/>
+                                                <DataGridTextColumn Header="Field" Binding="{Binding Field}" IsReadOnly="True" Width="2*"/>
+                                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="70"/>
+                                                <!-- Always-active TextBox: a single click puts the caret in the cell so the
+                                                     value can be typed directly (DataGrid edit-mode inside RowDetails is unreliable). -->
+                                                <DataGridTemplateColumn Header="Value" Width="*" IsReadOnly="True">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0"
+                                                                     Background="Transparent" Foreground="{DynamicResource Theme.Foreground}" Padding="2,0" ToolTip="Type the cell value"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </DataGrid.RowDetailsTemplate>
+                    </DataGrid>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <GroupBox Grid.Column="0" Header="Periodic Send Settings">
+                            <StackPanel>
+                                <CheckBox x:Name="EnablePeriodicCheck" Content="Enable periodic for this message" Foreground="{DynamicResource Theme.Foreground}" Margin="0,2,0,6"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Text="Interval (ms)" Width="90" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="IntervalBox" Text="1000" Width="120"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Text="How many" Width="90" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="HowManyBox" Text="0" Width="120"/>
+                                    <TextBlock Text="0 = unlimited" Foreground="{DynamicResource Theme.DimForeground}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Grid.Column="1" Header="HEX Preview">
+                            <TextBox x:Name="HexPreviewBox" IsReadOnly="True" FontFamily="Consolas" Height="120"
+                                     VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+                        </GroupBox>
+                    </Grid>
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Grid.Column="2" Header="Monitor: NIRON → MBT">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <DockPanel Grid.Row="0">
+                        <Button DockPanel.Dock="Bottom" x:Name="ClearMonitorButton" Content="Clear Monitor"
+                                Background="#8B2E1F" Click="ClearMonitor_Click"/>
+                        <DataGrid x:Name="MonitorGrid" AutoGenerateColumns="False" CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="Auto"/>
+                                <DataGridTextColumn Header="From" Binding="{Binding From}" Width="Auto"/>
+                                <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                                <DataGridTextColumn Header="Bytes" Binding="{Binding Bytes}" Width="Auto"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                    <GroupBox Grid.Row="1" Header="Received Message Fields">
+                        <DataGrid x:Name="ReceivedFieldsGrid" AutoGenerateColumns="False" CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" Width="Auto"/>
+                                <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="*"/>
+                                <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="Auto"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </GroupBox>
+                </Grid>
+            </GroupBox>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="420"/>
+            </Grid.ColumnDefinitions>
+            <GroupBox Grid.Column="0" Header="Send History">
+                <DockPanel>
+                    <Button DockPanel.Dock="Bottom" x:Name="ClearHistoryButton" Content="Clear History"
+                            Background="#8B2E1F" Click="ClearHistory_Click"/>
+                    <DataGrid x:Name="HistoryGrid" AutoGenerateColumns="False" CanUserAddRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="Auto"/>
+                            <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="Auto"/>
+                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                            <DataGridTextColumn Header="Seq" Binding="{Binding Seq}" Width="Auto"/>
+                            <DataGridTextColumn Header="Bytes" Binding="{Binding Bytes}" Width="Auto"/>
+                            <DataGridTextColumn Header="Periodic" Binding="{Binding Periodic}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </GroupBox>
+            <GroupBox Grid.Column="1" Header="Traffic Log">
+                <DockPanel>
+                    <Button DockPanel.Dock="Bottom" x:Name="ClearTrafficLogButton" Content="Clear Traffic Log"
+                            Background="#8B2E1F" Click="ClearTrafficLog_Click"/>
+                    <Button DockPanel.Dock="Bottom" Content="Refresh HEX Preview" Click="RefreshHex_Click"/>
+                    <TextBox x:Name="TrafficLogBox" IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                             VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+                </DockPanel>
+            </GroupBox>
+        </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Scenario">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="170"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="6,4">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Content="▶ Run" Background="#238636" Width="80" Click="RunScenario_Click"/>
+                            <Button Content="■ Stop" Background="#DA3633" Width="80" Margin="6,3,0,3" Click="StopScenario_Click"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="New Scenario" Click="NewScenario_Click"/>
+                            <Button Content="Open" Margin="6,3,0,3" Click="OpenScenario_Click"/>
+                            <Button Content="Save" Margin="6,3,0,3" Click="SaveScenario_Click"/>
+                            <TextBlock Text="Scenario:" VerticalAlignment="Center" Margin="14,0,4,0" Foreground="{DynamicResource Theme.HeaderForeground}"/>
+                            <TextBlock x:Name="ScenarioNameText" Text="(unsaved scenario)" VerticalAlignment="Center" FontWeight="Bold"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="340"/>
+                        </Grid.ColumnDefinitions>
+                        <GroupBox Grid.Column="0" Header="All Messages">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Drag a message to the scenario (or double-click)" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                                <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                                    <TextBlock Text="Operations (drag into the scenario, or double-click)" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,4"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border x:Name="SleepDragItem" Background="#B08800" CornerRadius="3" Padding="8,4" Cursor="Hand"
+                                                ToolTip="Drag into the scenario: when the scenario reaches it, every later step is delayed by the given milliseconds"
+                                                PreviewMouseLeftButtonDown="SleepItem_PreviewMouseLeftButtonDown"
+                                                PreviewMouseMove="SleepItem_PreviewMouseMove">
+                                            <TextBlock Text="⏱ Sleep" Foreground="White" FontWeight="Bold"/>
+                                        </Border>
+                                        <TextBox x:Name="SleepMsBox" Width="70" Margin="8,0,0,0" Text="1000" VerticalContentAlignment="Center"
+                                                 ToolTip="Sleep duration in milliseconds"/>
+                                        <TextBlock Text="ms" VerticalAlignment="Center" Margin="4,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                        <Border x:Name="ResponseDragItem" Background="#1F8FA8" CornerRadius="3" Padding="8,4" Cursor="Hand"
+                                                ToolTip="Drag into the scenario: when the chosen message is received and its field equals the value, the configured message is sent"
+                                                PreviewMouseLeftButtonDown="ResponseItem_PreviewMouseLeftButtonDown"
+                                                PreviewMouseMove="ResponseItem_PreviewMouseMove">
+                                            <TextBlock Text="⇄ Response" Foreground="White" FontWeight="Bold"/>
+                                        </Border>
+                                        <TextBlock Text="receive → check field → send" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <ListBox x:Name="AllMessagesList" Background="{DynamicResource Theme.PanelBackground}" Foreground="{DynamicResource Theme.Foreground}" BorderBrush="{DynamicResource Theme.Border}"
+                                         PreviewMouseLeftButtonDown="AllMessagesList_PreviewMouseLeftButtonDown"
+                                         PreviewMouseMove="AllMessagesList_PreviewMouseMove"
+                                         MouseDoubleClick="AllMessagesList_MouseDoubleClick"/>
+                            </DockPanel>
+                        </GroupBox>
+                        <GroupBox Grid.Column="1" Header="Scenario Steps (each step runs by its own attributes)">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Drag messages or the Sleep / Response operations here. A Sleep step pauses the scenario; a Response step sends a message when a received message's field matches a value. Click a step to edit it." TextWrapping="Wrap" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal">
+                                    <Button Content="Remove Step" Background="#8B2E1F" Click="RemoveStep_Click"/>
+                                    <Button Content="↑ Move Up" Margin="6,3,0,3" Click="MoveStepUp_Click"/>
+                                    <Button Content="↓ Move Down" Margin="6,3,0,3" Click="MoveStepDown_Click"/>
+                                    <Button Content="Clear Steps" Background="#8B2E1F" Margin="6,3,0,3" Click="ClearSteps_Click"/>
+                                </StackPanel>
+                                <DataGrid x:Name="ScenarioStepsList" AutoGenerateColumns="False" CanUserAddRows="False" AllowDrop="True"
+                                          Drop="ScenarioSteps_Drop" DragOver="ScenarioSteps_DragOver" Margin="0,0,0,6"
+                                          SelectionChanged="ScenarioStepsList_SelectionChanged">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="#" Binding="{Binding Index}" IsReadOnly="True" Width="40"/>
+                                        <DataGridTextColumn Header="Message" Binding="{Binding Message}" IsReadOnly="True" Width="*"/>
+                                        <DataGridTextColumn Header="Send Type" Binding="{Binding SendType}" IsReadOnly="True" Width="90"/>
+                                        <DataGridCheckBoxColumn Header="Periodic" Binding="{Binding Periodic, UpdateSourceTrigger=PropertyChanged}" Width="70"/>
+                                        <DataGridTextColumn Header="Time (ms)" Binding="{Binding TimeMs, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                                        <DataGridTextColumn Header="Interval (ms)" Binding="{Binding PeriodicIntervalMs, UpdateSourceTrigger=PropertyChanged}" Width="100"/>
+                                        <DataGridTextColumn Header="Max (0=unlimited)" Binding="{Binding MaxMessages, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </GroupBox>
+                        <GroupBox Grid.Column="2">
+                            <GroupBox.Header>
+                                <TextBlock x:Name="StepFieldsHeader" Text="Step Fields (select a step)" Foreground="{DynamicResource Theme.HeaderForeground}" FontWeight="Bold"/>
+                            </GroupBox.Header>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Edit the values this step sends (saved with the scenario); click an array row to open its cells and type each value" TextWrapping="Wrap" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                                <StackPanel x:Name="ResponseEditPanel" DockPanel.Dock="Top" Visibility="Collapsed" Margin="0,0,0,6">
+                                    <TextBlock Text="1) When this message is received:" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,0,0,2"/>
+                                    <ComboBox x:Name="ResponseTriggerCombo" SelectionChanged="ResponseTriggerCombo_SelectionChanged"/>
+                                    <TextBlock Text="2) And this field equals the value:" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,6,0,2"/>
+                                    <ComboBox x:Name="ResponseFieldCombo" SelectionChanged="ResponseFieldCombo_SelectionChanged"/>
+                                    <TextBox x:Name="ResponseValueBox" Margin="0,4,0,0" TextChanged="ResponseValueBox_TextChanged" ToolTip="Expected value of the chosen field"/>
+                                    <TextBlock Text="3) Then send this message (edit its values below):" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,6,0,2"/>
+                                    <ComboBox x:Name="ResponseSendCombo" SelectionChanged="ResponseSendCombo_SelectionChanged"/>
+                                </StackPanel>
+                                <DataGrid x:Name="StepFieldsGrid" AutoGenerateColumns="False" CanUserAddRows="False" RowDetailsVisibilityMode="Collapsed"
+                                          PreviewMouseLeftButtonUp="ArrayRow_ToggleOnClick" LoadingRow="ArrayRow_LoadingRow">
+                                    <!-- Array rows open into a nested cells table on row click (same as the
+                                         Simulator tab; DetailsVisibility is set in code-behind). -->
+                                    <DataGrid.Columns>
+                                        <!-- The arrow is a visual indicator; clicking anywhere on the array row
+                                             toggles the nested cells table (grid PreviewMouseLeftButtonUp). -->
+                                        <DataGridTemplateColumn Width="26" IsReadOnly="True">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="Transparent" Cursor="Hand" Visibility="{Binding ExpanderVisibility}"
+                                                            ToolTip="Click the row to open / close the array cells">
+                                                        <TextBlock Text="{Binding ExpanderGlyph}" Foreground="{DynamicResource Theme.HeaderForeground}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Field" Binding="{Binding Field}" IsReadOnly="True" Width="2*"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="70"/>
+                                        <DataGridTextColumn Header="Value" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                    </DataGrid.Columns>
+                                    <DataGrid.RowDetailsTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{DynamicResource Theme.PanelBackground}" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="1" CornerRadius="3" Margin="26,2,8,6" Padding="6">
+                                                <StackPanel>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                        <TextBlock Text="Elements" VerticalAlignment="Center" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                                        <TextBox Text="{Binding CountText, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="6,0,0,0"/>
+                                                        <Button Content="Apply" Width="60" Margin="6,0,0,0" Click="ApplyStepArrayCount_Click"/>
+                                                        <TextBlock Text="{Binding ArraySummary}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                                    </StackPanel>
+                                                    <DataGrid ItemsSource="{Binding Cells}" AutoGenerateColumns="False" CanUserAddRows="False" MaxHeight="160">
+                                                        <DataGrid.Columns>
+                                                            <DataGridTextColumn Header="Idx" Binding="{Binding Index}" IsReadOnly="True" Width="46"/>
+                                                            <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" IsReadOnly="True" Width="60"/>
+                                                            <DataGridTextColumn Header="Field" Binding="{Binding Field}" IsReadOnly="True" Width="2*"/>
+                                                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="70"/>
+                                                            <!-- Always-active TextBox: a single click puts the caret in the cell so the
+                                                                 value can be typed directly (DataGrid edit-mode inside RowDetails is unreliable). -->
+                                                            <DataGridTemplateColumn Header="Value" Width="*" IsReadOnly="True">
+                                                                <DataGridTemplateColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0"
+                                                                                 Background="Transparent" Foreground="{DynamicResource Theme.Foreground}" Padding="2,0" ToolTip="Type the cell value"/>
+                                                                    </DataTemplate>
+                                                                </DataGridTemplateColumn.CellTemplate>
+                                                            </DataGridTemplateColumn>
+                                                        </DataGrid.Columns>
+                                                    </DataGrid>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGrid.RowDetailsTemplate>
+                                </DataGrid>
+                            </DockPanel>
+                        </GroupBox>
+                    </Grid>
+
+                    <GroupBox Grid.Row="2" Header="Scenario Log">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Bottom" Content="Clear Log" Background="#8B2E1F" Click="ClearScenarioLog_Click"/>
+                            <TextBox x:Name="ScenarioLogBox" IsReadOnly="True" FontFamily="Consolas" FontSize="11"
+                                     VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+                        </DockPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Flow">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="260"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="300"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <GroupBox Grid.Row="0" Header="Messages">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Drag a message onto the designer" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                                <ListBox x:Name="FlowMessagesList" Background="{DynamicResource Theme.PanelBackground}" Foreground="{DynamicResource Theme.Foreground}" BorderBrush="{DynamicResource Theme.Border}"
+                                         PreviewMouseLeftButtonDown="FlowPaletteItem_PreviewMouseLeftButtonDown"
+                                         PreviewMouseMove="FlowMessages_PreviewMouseMove"/>
+                            </DockPanel>
+                        </GroupBox>
+                        <GroupBox Grid.Row="1" Header="Flow Items">
+                            <StackPanel>
+                                <TextBlock Text="Drag onto the designer" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                                <Border Tag="::FLOWCOND::" Background="#C8862B" CornerRadius="3" Padding="8,6" Margin="0,0,0,6" Cursor="Hand"
+                                        ToolTip="Condition: wait for a message (drawn as a rhombus)"
+                                        PreviewMouseLeftButtonDown="FlowPaletteItem_PreviewMouseLeftButtonDown" PreviewMouseMove="FlowItem_PreviewMouseMove">
+                                    <TextBlock Text="◇ Condition (rhombus)" Foreground="White" FontWeight="Bold"/>
+                                </Border>
+                                <Border Tag="::FLOWDELAY::" Background="#8A6D1B" CornerRadius="3" Padding="8,6" Margin="0,0,0,6" Cursor="Hand"
+                                        ToolTip="Delay: pause for a number of milliseconds"
+                                        PreviewMouseLeftButtonDown="FlowPaletteItem_PreviewMouseLeftButtonDown" PreviewMouseMove="FlowItem_PreviewMouseMove">
+                                    <TextBlock Text="⌛ Delay" Foreground="White" FontWeight="Bold"/>
+                                </Border>
+                                <Border Tag="::FLOWLOOP::" Background="#6E40C9" CornerRadius="3" Padding="8,6" Cursor="Hand"
+                                        ToolTip="Loop: repeat a number of times"
+                                        PreviewMouseLeftButtonDown="FlowPaletteItem_PreviewMouseLeftButtonDown" PreviewMouseMove="FlowItem_PreviewMouseMove">
+                                    <TextBlock Text="↻ Loop" Foreground="White" FontWeight="Bold"/>
+                                </Border>
+                            </StackPanel>
+                        </GroupBox>
+                    </Grid>
+
+                    <GroupBox Grid.Column="1" Header="Scenario Designer">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
+                                <Button Content="▶ Run Scenario" Background="#238636" Width="120" Click="RunFlow_Click"/>
+                                <Button Content="■ Stop" Background="#DA3633" Width="70" Margin="6,3,0,3" Click="StopFlow_Click"/>
+                                <Button Content="Clear" Background="#8B2E1F" Margin="6,3,0,3" Click="FlowClear_Click"/>
+                                <Button Content="−" Width="28" Margin="12,3,0,3" Click="FlowZoomOut_Click" ToolTip="Zoom out"/>
+                                <TextBlock x:Name="FlowZoomText" Text="100%" Width="46" TextAlignment="Center" VerticalAlignment="Center"/>
+                                <Button Content="+" Width="28" Margin="0,3" Click="FlowZoomIn_Click" ToolTip="Zoom in"/>
+                                <Button Content="Fit" Width="40" Margin="6,3,0,3" Click="FlowZoomReset_Click" ToolTip="Reset zoom to 100%"/>
+                                <TextBlock Text="Right-click a node then another to link them (Condition links become True then False). Run Scenario plays the flow." TextWrapping="Wrap"
+                                           VerticalAlignment="Center" Margin="12,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                            </StackPanel>
+                            <GroupBox DockPanel.Dock="Bottom" Header="Scenario Steps" Height="160" Margin="0,4,0,0">
+                                <DataGrid x:Name="FlowStepsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="40"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="Auto"/>
+                                        <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                                        <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="2*"/>
+                                        <DataGridTextColumn Header="Next Step" Binding="{Binding Next}" Width="2*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </GroupBox>
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                <Canvas x:Name="FlowCanvas" Background="{DynamicResource Theme.PanelBackground}" Width="1600" Height="1100" AllowDrop="True"
+                                        DragOver="FlowCanvas_DragOver" Drop="FlowCanvas_Drop"
+                                        MouseMove="FlowCanvas_MouseMove" MouseLeftButtonUp="FlowCanvas_MouseLeftButtonUp"
+                                        MouseLeftButtonDown="FlowCanvas_MouseLeftButtonDown">
+                                    <Canvas.LayoutTransform>
+                                        <ScaleTransform x:Name="FlowZoomTransform" ScaleX="1" ScaleY="1"/>
+                                    </Canvas.LayoutTransform>
+                                </Canvas>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </GroupBox>
+
+                    <GroupBox Grid.Column="2" Header="Step Properties">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="Step Type" Foreground="{DynamicResource Theme.DimForeground}" Margin="0,0,0,2"/>
+                                <TextBlock x:Name="FlowPropsHeader" Text="(no node selected)" FontWeight="Bold" FontSize="14" Margin="0,0,0,8"/>
+                                <StackPanel x:Name="FlowMessagePanel" Visibility="Collapsed">
+                                    <TextBlock Text="Message" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,0,0,2"/>
+                                    <TextBlock x:Name="FlowMessageInfoText" Text="-" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                                    <TextBlock Text="Fields (edit the values this message sends; click an array row to open its cells)" TextWrapping="Wrap" Foreground="{DynamicResource Theme.DimForeground}" Margin="0,0,0,4"/>
+                                    <DataGrid x:Name="FlowFieldsGrid" AutoGenerateColumns="False" CanUserAddRows="False" MaxHeight="380" RowDetailsVisibilityMode="Collapsed"
+                                              PreviewMouseLeftButtonUp="ArrayRow_ToggleOnClick" LoadingRow="ArrayRow_LoadingRow">
+                                        <DataGrid.Columns>
+                                            <DataGridTemplateColumn Width="26" IsReadOnly="True">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="Transparent" Cursor="Hand" Visibility="{Binding ExpanderVisibility}"
+                                                                ToolTip="Click the row to open / close the array cells">
+                                                            <TextBlock Text="{Binding ExpanderGlyph}" Foreground="{DynamicResource Theme.HeaderForeground}" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="Field" Binding="{Binding Field}" IsReadOnly="True" Width="2*"/>
+                                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="70"/>
+                                            <DataGridTextColumn Header="Value" Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                                        </DataGrid.Columns>
+                                        <DataGrid.RowDetailsTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{DynamicResource Theme.PanelBackground}" BorderBrush="{DynamicResource Theme.Border}" BorderThickness="1" CornerRadius="3" Margin="26,2,8,6" Padding="6">
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                            <TextBlock Text="Elements" VerticalAlignment="Center" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                                            <TextBox Text="{Binding CountText, UpdateSourceTrigger=PropertyChanged}" Width="60" Margin="6,0,0,0"/>
+                                                            <Button Content="Apply" Width="60" Margin="6,0,0,0" Click="ApplyFlowArrayCount_Click"/>
+                                                            <TextBlock Text="{Binding ArraySummary}" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                                                        </StackPanel>
+                                                        <DataGrid ItemsSource="{Binding Cells}" AutoGenerateColumns="False" CanUserAddRows="False" MaxHeight="160">
+                                                            <DataGrid.Columns>
+                                                                <DataGridTextColumn Header="Idx" Binding="{Binding Index}" IsReadOnly="True" Width="46"/>
+                                                                <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" IsReadOnly="True" Width="60"/>
+                                                                <DataGridTextColumn Header="Field" Binding="{Binding Field}" IsReadOnly="True" Width="2*"/>
+                                                                <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" Width="70"/>
+                                                                <DataGridTemplateColumn Header="Value" Width="*" IsReadOnly="True">
+                                                                    <DataGridTemplateColumn.CellTemplate>
+                                                                        <DataTemplate>
+                                                                            <TextBox Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0"
+                                                                                     Background="Transparent" Foreground="{DynamicResource Theme.Foreground}" Padding="2,0" ToolTip="Type the cell value"/>
+                                                                        </DataTemplate>
+                                                                    </DataGridTemplateColumn.CellTemplate>
+                                                                </DataGridTemplateColumn>
+                                                            </DataGrid.Columns>
+                                                        </DataGrid>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGrid.RowDetailsTemplate>
+                                    </DataGrid>
+                                </StackPanel>
+                                <StackPanel x:Name="FlowConditionPanel" Visibility="Collapsed">
+                                    <TextBlock Text="Wait for Message" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,0,0,2"/>
+                                    <ComboBox x:Name="FlowWaitMessageCombo" SelectionChanged="FlowWaitMessageCombo_SelectionChanged"/>
+                                    <TextBlock Text="Timeout (ms)" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,8,0,2"/>
+                                    <TextBox x:Name="FlowTimeoutBox" Text="5000" TextChanged="FlowTimeoutBox_TextChanged"/>
+                                    <CheckBox x:Name="FlowIgnoreTimeoutCheck" Content="Ignore Timeout" Foreground="{DynamicResource Theme.Foreground}" Margin="0,6,0,0" Click="FlowIgnoreTimeout_Click"/>
+                                    <TextBlock Text="Logical Condition (optional)" Foreground="{DynamicResource Theme.HeaderForeground}" FontWeight="Bold" Margin="0,10,0,2"/>
+                                    <TextBlock Text="Test a field of the awaited message, e.g. Field1 &gt;= 5. True branch when it holds, else False." TextWrapping="Wrap" Foreground="{DynamicResource Theme.DimForeground}" Margin="0,0,0,4"/>
+                                    <ComboBox x:Name="FlowCondFieldCombo" SelectionChanged="FlowCondFieldCombo_SelectionChanged"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <ComboBox x:Name="FlowCondOperatorCombo" Width="64" SelectionChanged="FlowCondOperatorCombo_SelectionChanged">
+                                            <ComboBoxItem Content="&gt;"/>
+                                            <ComboBoxItem Content="&gt;=" IsSelected="True"/>
+                                            <ComboBoxItem Content="&lt;"/>
+                                            <ComboBoxItem Content="&lt;="/>
+                                            <ComboBoxItem Content="=="/>
+                                            <ComboBoxItem Content="!="/>
+                                        </ComboBox>
+                                        <TextBox x:Name="FlowCondValueBox" Width="150" Margin="6,0,0,0" TextChanged="FlowCondValueBox_TextChanged" ToolTip="Value to compare the field against"/>
+                                    </StackPanel>
+                                    <TextBlock Text="On True" Foreground="{DynamicResource Theme.HeaderForeground}" FontWeight="Bold" Margin="0,10,0,2"/>
+                                    <TextBlock Text="Send Message" Foreground="{DynamicResource Theme.DimForeground}" Margin="0,0,0,2"/>
+                                    <ComboBox x:Name="FlowTrueSendCombo" SelectionChanged="FlowTrueSendCombo_SelectionChanged"/>
+                                    <TextBlock Text="Next Step" Foreground="{DynamicResource Theme.DimForeground}" Margin="0,4,0,2"/>
+                                    <ComboBox x:Name="FlowOnTrueCombo" DisplayMemberPath="Label" SelectionChanged="FlowOnTrueCombo_SelectionChanged"/>
+                                    <TextBlock Text="On False" Foreground="{DynamicResource Theme.HeaderForeground}" FontWeight="Bold" Margin="0,10,0,2"/>
+                                    <TextBlock Text="Send Message" Foreground="{DynamicResource Theme.DimForeground}" Margin="0,0,0,2"/>
+                                    <ComboBox x:Name="FlowFalseSendCombo" SelectionChanged="FlowFalseSendCombo_SelectionChanged"/>
+                                    <TextBlock Text="Next Step" Foreground="{DynamicResource Theme.DimForeground}" Margin="0,4,0,2"/>
+                                    <ComboBox x:Name="FlowOnFalseCombo" DisplayMemberPath="Label" SelectionChanged="FlowOnFalseCombo_SelectionChanged"/>
+                                </StackPanel>
+                                <StackPanel x:Name="FlowDelayPanel" Visibility="Collapsed">
+                                    <TextBlock Text="Delay (ms)" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,0,0,2"/>
+                                    <TextBox x:Name="FlowDelayBox" Text="1000" TextChanged="FlowDelayBox_TextChanged"/>
+                                </StackPanel>
+                                <StackPanel x:Name="FlowLoopPanel" Visibility="Collapsed">
+                                    <TextBlock Text="Repeat (times)" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,0,0,2"/>
+                                    <TextBox x:Name="FlowLoopCountBox" Text="3" TextChanged="FlowLoopCountBox_TextChanged"/>
+                                    <TextBlock Text="Send Message (each iteration)" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,8,0,2"/>
+                                    <ComboBox x:Name="FlowLoopSendCombo" SelectionChanged="FlowLoopSendCombo_SelectionChanged"/>
+                                </StackPanel>
+                                <TextBlock Text="Description" Foreground="{DynamicResource Theme.HeaderForeground}" Margin="0,10,0,2"/>
+                                <TextBox x:Name="FlowDescriptionBox" Height="90" AcceptsReturn="True" TextWrapping="Wrap"
+                                         VerticalScrollBarVisibility="Auto" TextChanged="FlowDescriptionBox_TextChanged"/>
+                                <Button Content="Delete Node" Background="#8B2E1F" Margin="0,10,0,0" Click="FlowDeleteNode_Click"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Record">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="6,4">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Open Recording (BIN)" Click="OpenRecording_Click"/>
+                            <Button Content="↓ Export Type (CSV)" Background="#1F8FA8" Margin="6,3,0,3" Click="ExportRecordType_Click"
+                                    ToolTip="Export all recorded messages of the selected type: one column per field, one row per message"/>
+                            <TextBlock Text="File:" VerticalAlignment="Center" Margin="14,0,4,0" Foreground="{DynamicResource Theme.HeaderForeground}"/>
+                            <TextBlock x:Name="RecordFileText" Text="(no file loaded)" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <TextBlock x:Name="RecordSummaryText" Text="" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="280"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="340"/>
+                        </Grid.ColumnDefinitions>
+                        <GroupBox Grid.Column="0" Header="Message Types">
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Click a type to show its recorded messages" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                                <ListBox x:Name="RecordTypesList" Background="{DynamicResource Theme.PanelBackground}" Foreground="{DynamicResource Theme.Foreground}" BorderBrush="{DynamicResource Theme.Border}"
+                                         SelectionChanged="RecordTypesList_SelectionChanged"/>
+                            </DockPanel>
+                        </GroupBox>
+                        <GroupBox Grid.Column="1" Header="Recorded Messages">
+                            <DataGrid x:Name="RecordedMessagesGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                      SelectionChanged="RecordedMessagesGrid_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="#" Binding="{Binding Ordinal}" Width="50"/>
+                                    <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Msg Id" Binding="{Binding MessageId}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Bytes" Binding="{Binding Bytes}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Data (HEX)" Binding="{Binding Hex}" Width="*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontFamily" Value="Consolas"/>
+                                                <Setter Property="TextWrapping" Value="Wrap"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+                        <GroupBox Grid.Column="2">
+                            <GroupBox.Header>
+                                <TextBlock x:Name="RecordFieldsHeader" Text="Message Fields (select a row)" Foreground="{DynamicResource Theme.HeaderForeground}" FontWeight="Bold"/>
+                            </GroupBox.Header>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Top" Text="Click a recorded message to decode all its fields" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,6"/>
+                                <DataGrid x:Name="RecordFieldsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" Width="60"/>
+                                        <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="2*"/>
+                                        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </GroupBox>
+                    </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Graph">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="250"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.Column="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <GroupBox Grid.Row="0" Header="Messages">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="GraphFilterPanel"/>
+                            </ScrollViewer>
+                        </GroupBox>
+                        <GroupBox Grid.Row="1" Header="View Options">
+                            <StackPanel>
+                                <TextBlock Text="Zoom" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,2"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="−" Width="32" Click="GraphZoomOut_Click"/>
+                                    <TextBlock x:Name="GraphZoomText" Text="100%" Width="56" TextAlignment="Center" VerticalAlignment="Center"/>
+                                    <Button Content="+" Width="32" Click="GraphZoomIn_Click"/>
+                                    <Button Content="Fit" Width="44" Margin="6,3,0,3" Click="GraphFit_Click"/>
+                                </StackPanel>
+                                <Button x:Name="GraphPauseButton" Content="⏸ Pause" Background="#B08800" Margin="0,8,0,0" Click="GraphPause_Click"
+                                        ToolTip="Freeze the timeline display; events keep accumulating"/>
+                                <TextBlock Text="Direction Filter" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,8,0,2"/>
+                                <ComboBox x:Name="GraphDirectionCombo" SelectedIndex="0" SelectionChanged="GraphOptions_Changed">
+                                    <ComboBoxItem Content="All"/>
+                                    <ComboBoxItem Content="MBT → NIRON"/>
+                                    <ComboBoxItem Content="NIRON → MBT"/>
+                                </ComboBox>
+                                <Button Content="Clear Timeline" Background="#8B2E1F" Margin="0,8,0,0" Click="ClearTimeline_Click"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </Grid>
+
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="220"/>
+                        </Grid.RowDefinitions>
+                        <GroupBox Grid.Row="0">
+                            <GroupBox.Header>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Message Timeline" FontWeight="Bold" Foreground="{DynamicResource Theme.HeaderForeground}"/>
+                                    <TextBlock Text="→ MBT → NIRON (my side)" Foreground="#238636" Margin="20,0,0,0"/>
+                                    <TextBlock Text="→ NIRON → MBT" Foreground="{DynamicResource Theme.GraphRx}" Margin="14,0,0,0"/>
+                                    <Button Content="−" Width="26" Padding="0" Margin="20,0,0,0" Click="GraphZoomOut_Click" ToolTip="Zoom out"/>
+                                    <Button Content="+" Width="26" Padding="0" Margin="4,0,0,0" Click="GraphZoomIn_Click" ToolTip="Zoom in"/>
+                                    <TextBlock Text="Ctrl+Wheel zooms" Foreground="{DynamicResource Theme.DimForeground}" Margin="8,0,0,0"/>
+                                </StackPanel>
+                            </GroupBox.Header>
+                            <ScrollViewer x:Name="GraphScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                          PreviewMouseWheel="GraphScroll_PreviewMouseWheel">
+                                <Canvas x:Name="TimelineCanvas" Background="{DynamicResource Theme.PanelBackground}" Height="380" MinWidth="900"/>
+                            </ScrollViewer>
+                        </GroupBox>
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="340"/>
+                            </Grid.ColumnDefinitions>
+                            <GroupBox Grid.Column="0" Header="Details">
+                                <DataGrid x:Name="TimelineDetailsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                          SelectionChanged="TimelineDetailsGrid_SelectionChanged">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="Auto"/>
+                                        <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="Auto"/>
+                                        <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                                        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="Auto"/>
+                                        <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </GroupBox>
+                            <GroupBox Grid.Column="1">
+                                <GroupBox.Header>
+                                    <TextBlock x:Name="GraphFieldsHeader" Text="Message Fields (click a point or row)" Foreground="{DynamicResource Theme.HeaderForeground}" FontWeight="Bold"/>
+                                </GroupBox.Header>
+                                <DataGrid x:Name="GraphFieldsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" Width="60"/>
+                                        <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="2*"/>
+                                        <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </GroupBox>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Record Graph">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="6,4">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Open Recording (BIN)" Click="OpenRecordGraph_Click"/>
+                            <TextBlock Text="File:" VerticalAlignment="Center" Margin="14,0,4,0" Foreground="{DynamicResource Theme.HeaderForeground}"/>
+                            <TextBlock x:Name="RecordGraphFileText" Text="(no file loaded)" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <TextBlock x:Name="RecordGraphSummaryText" Text="" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="250"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <GroupBox Grid.Row="0" Header="Messages">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="RecordGraphFilterPanel"/>
+                                </ScrollViewer>
+                            </GroupBox>
+                            <GroupBox Grid.Row="1" Header="View Options">
+                                <StackPanel>
+                                    <TextBlock Text="Zoom" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,0,0,2"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="−" Width="32" Click="RecordGraphZoomOut_Click"/>
+                                        <TextBlock x:Name="RecordGraphZoomText" Text="100%" Width="56" TextAlignment="Center" VerticalAlignment="Center"/>
+                                        <Button Content="+" Width="32" Click="RecordGraphZoomIn_Click"/>
+                                        <Button Content="Fit" Width="44" Margin="6,3,0,3" Click="RecordGraphFit_Click"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Direction Filter" Foreground="{DynamicResource Theme.DimForeground}" Margin="2,8,0,2"/>
+                                    <ComboBox x:Name="RecordGraphDirectionCombo" SelectedIndex="0" SelectionChanged="RecordGraphOptions_Changed">
+                                        <ComboBoxItem Content="All"/>
+                                        <ComboBoxItem Content="MBT → NIRON"/>
+                                        <ComboBoxItem Content="NIRON → MBT"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </GroupBox>
+                        </Grid>
+
+                        <Grid Grid.Column="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="220"/>
+                            </Grid.RowDefinitions>
+                            <GroupBox Grid.Row="0">
+                                <GroupBox.Header>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Recorded Message Timeline" FontWeight="Bold" Foreground="{DynamicResource Theme.HeaderForeground}"/>
+                                        <TextBlock Text="→ MBT → NIRON (my side)" Foreground="#238636" Margin="20,0,0,0"/>
+                                        <TextBlock Text="→ NIRON → MBT" Foreground="{DynamicResource Theme.GraphRx}" Margin="14,0,0,0"/>
+                                        <Button Content="−" Width="26" Padding="0" Margin="20,0,0,0" Click="RecordGraphZoomOut_Click" ToolTip="Zoom out"/>
+                                        <Button Content="+" Width="26" Padding="0" Margin="4,0,0,0" Click="RecordGraphZoomIn_Click" ToolTip="Zoom in"/>
+                                        <TextBlock Text="Ctrl+Wheel zooms" Foreground="{DynamicResource Theme.DimForeground}" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                </GroupBox.Header>
+                                <ScrollViewer x:Name="RecordGraphScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                              PreviewMouseWheel="RecordGraphScroll_PreviewMouseWheel">
+                                    <Canvas x:Name="RecordGraphCanvas" Background="{DynamicResource Theme.PanelBackground}" Height="380" MinWidth="900"/>
+                                </ScrollViewer>
+                            </GroupBox>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="340"/>
+                                </Grid.ColumnDefinitions>
+                                <GroupBox Grid.Column="0" Header="Details">
+                                    <DataGrid x:Name="RecordGraphDetailsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                              SelectionChanged="RecordGraphDetailsGrid_SelectionChanged">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Time" Binding="{Binding Time}" Width="Auto"/>
+                                            <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="Auto"/>
+                                            <DataGridTextColumn Header="Message" Binding="{Binding Message}" Width="*"/>
+                                            <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="Auto"/>
+                                            <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </GroupBox>
+                                <GroupBox Grid.Column="1">
+                                    <GroupBox.Header>
+                                        <TextBlock x:Name="RecordGraphFieldsHeader" Text="Message Fields (click a point or row)" Foreground="{DynamicResource Theme.HeaderForeground}" FontWeight="Bold"/>
+                                    </GroupBox.Header>
+                                    <DataGrid x:Name="RecordGraphFieldsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Offset" Binding="{Binding Offset}" Width="60"/>
+                                            <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="2*"/>
+                                            <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </GroupBox>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Statistics">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="6,4">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Reset Statistics" Background="#8B2E1F" Click="ResetStats_Click"/>
+                            <TextBlock x:Name="StatsSummaryText" Text="(no traffic yet)" VerticalAlignment="Center" Margin="14,0,0,0" Foreground="{DynamicResource Theme.DimForeground}"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="420"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <GroupBox Grid.Column="0" Header="Global Statistics">
+                            <DataGrid x:Name="GlobalStatsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Statistic" Binding="{Binding Statistic}" Width="3*"/>
+                                    <DataGridTextColumn Header="Value" Binding="{Binding Value}" Width="2*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+                        <GroupBox Grid.Column="1" Header="Per-Message Statistics (refreshed every second)">
+                            <DataGrid x:Name="StatsGrid" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Message Name" Binding="{Binding Message}" Width="2*"/>
+                                    <DataGridTextColumn Header="Received" Binding="{Binding Received}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Sent" Binding="{Binding Sent}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Msg/sec" Binding="{Binding MsgPerSec}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Bytes/sec" Binding="{Binding BytesPerSec}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Total Bytes" Binding="{Binding TotalBytes}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Avg Size" Binding="{Binding AvgSize}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Min Size" Binding="{Binding MinSize}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Max Size" Binding="{Binding MaxSize}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Last RX Time" Binding="{Binding LastReceived}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Last TX Time" Binding="{Binding LastSent}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Since Last (s)" Binding="{Binding SinceLast}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Errors" Binding="{Binding Errors}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Dropped" Binding="{Binding Dropped}" Width="Auto"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </GroupBox>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

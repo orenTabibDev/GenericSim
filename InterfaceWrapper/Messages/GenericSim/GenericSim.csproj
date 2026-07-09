@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <Platforms>x64</Platforms>
+  </PropertyGroup>
+
+  <!-- RS232 serial port support on .NET 8. -->
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Reuse the P/Invoke bindings emitted alongside the native wrapper. -->
+  <ItemGroup>
+    <Compile Include="..\WrapperFromCToSharp\WrapperInterop.cs" Link="WrapperInterop.cs" />
+  </ItemGroup>
+
+  <!-- Copy the native DLL next to the executable once it has been built.
+       Build the WrapperFromCToSharp.vcxproj (x64) first. -->
+  <ItemGroup>
+    <None Include="..\WrapperFromCToSharp\x64\$(Configuration)\WrapperFromCToSharp.dll" Condition="Exists('..\WrapperFromCToSharp\x64\$(Configuration)\WrapperFromCToSharp.dll')">
+      <Link>WrapperFromCToSharp.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

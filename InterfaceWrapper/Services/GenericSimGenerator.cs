@@ -490,6 +490,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                </Grid>");
             sb.AppendLine("            </TabItem>");
             AppendScenarioTabXaml(sb);
+            AppendFlowTabXaml(sb);
             AppendRecordTabXaml(sb);
             AppendGraphTabXaml(sb);
             AppendRecordGraphTabXaml(sb);
@@ -683,6 +684,206 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                            <TextBox x:Name=\"ScenarioLogBox\" IsReadOnly=\"True\" FontFamily=\"Consolas\" FontSize=\"11\"");
             sb.AppendLine("                                     VerticalScrollBarVisibility=\"Auto\" TextWrapping=\"Wrap\"/>");
             sb.AppendLine("                        </DockPanel>");
+            sb.AppendLine("                    </GroupBox>");
+            sb.AppendLine("                </Grid>");
+            sb.AppendLine("            </TabItem>");
+        }
+
+        /// <summary>
+        /// The Flow tab: a visual scenario designer. A left palette (Messages + Flow Items),
+        /// a middle drag &amp; drop canvas where a Message is drawn as a rectangle and a Condition
+        /// as a rhombus, and a right Step Properties panel for the selected node.
+        /// </summary>
+        private static void AppendFlowTabXaml(StringBuilder sb)
+        {
+            sb.AppendLine("            <TabItem Header=\"Flow\">");
+            sb.AppendLine("                <Grid>");
+            sb.AppendLine("                    <Grid.ColumnDefinitions>");
+            sb.AppendLine("                        <ColumnDefinition Width=\"260\"/>");
+            sb.AppendLine("                        <ColumnDefinition Width=\"*\"/>");
+            sb.AppendLine("                        <ColumnDefinition Width=\"300\"/>");
+            sb.AppendLine("                    </Grid.ColumnDefinitions>");
+            sb.AppendLine();
+            // Left palette: Messages list + Flow Items (Condition / Delay / Loop).
+            sb.AppendLine("                    <Grid Grid.Column=\"0\">");
+            sb.AppendLine("                        <Grid.RowDefinitions>");
+            sb.AppendLine("                            <RowDefinition Height=\"*\"/>");
+            sb.AppendLine("                            <RowDefinition Height=\"Auto\"/>");
+            sb.AppendLine("                        </Grid.RowDefinitions>");
+            sb.AppendLine("                        <GroupBox Grid.Row=\"0\" Header=\"Messages\">");
+            sb.AppendLine("                            <DockPanel>");
+            sb.AppendLine("                                <TextBlock DockPanel.Dock=\"Top\" Text=\"Drag a message onto the designer\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <ListBox x:Name=\"FlowMessagesList\" Background=\"#0B1220\" Foreground=\"#E6EDF3\" BorderBrush=\"#22303C\"");
+            sb.AppendLine("                                         PreviewMouseLeftButtonDown=\"FlowPaletteItem_PreviewMouseLeftButtonDown\"");
+            sb.AppendLine("                                         PreviewMouseMove=\"FlowMessages_PreviewMouseMove\"/>");
+            sb.AppendLine("                            </DockPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                        <GroupBox Grid.Row=\"1\" Header=\"Flow Items\">");
+            sb.AppendLine("                            <StackPanel>");
+            sb.AppendLine("                                <TextBlock Text=\"Drag onto the designer\" Foreground=\"#7A8CA0\" Margin=\"2,0,0,6\"/>");
+            sb.AppendLine("                                <Border Tag=\"::FLOWCOND::\" Background=\"#C8862B\" CornerRadius=\"3\" Padding=\"8,6\" Margin=\"0,0,0,6\" Cursor=\"Hand\"");
+            sb.AppendLine("                                        ToolTip=\"Condition: wait for a message (drawn as a rhombus)\"");
+            sb.AppendLine("                                        PreviewMouseLeftButtonDown=\"FlowPaletteItem_PreviewMouseLeftButtonDown\" PreviewMouseMove=\"FlowItem_PreviewMouseMove\">");
+            sb.AppendLine("                                    <TextBlock Text=\"\u25C7 Condition (rhombus)\" Foreground=\"White\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                                </Border>");
+            sb.AppendLine("                                <Border Tag=\"::FLOWDELAY::\" Background=\"#8A6D1B\" CornerRadius=\"3\" Padding=\"8,6\" Margin=\"0,0,0,6\" Cursor=\"Hand\"");
+            sb.AppendLine("                                        ToolTip=\"Delay: pause for a number of milliseconds\"");
+            sb.AppendLine("                                        PreviewMouseLeftButtonDown=\"FlowPaletteItem_PreviewMouseLeftButtonDown\" PreviewMouseMove=\"FlowItem_PreviewMouseMove\">");
+            sb.AppendLine("                                    <TextBlock Text=\"\u231B Delay\" Foreground=\"White\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                                </Border>");
+            sb.AppendLine("                                <Border Tag=\"::FLOWLOOP::\" Background=\"#6E40C9\" CornerRadius=\"3\" Padding=\"8,6\" Cursor=\"Hand\"");
+            sb.AppendLine("                                        ToolTip=\"Loop: repeat a number of times\"");
+            sb.AppendLine("                                        PreviewMouseLeftButtonDown=\"FlowPaletteItem_PreviewMouseLeftButtonDown\" PreviewMouseMove=\"FlowItem_PreviewMouseMove\">");
+            sb.AppendLine("                                    <TextBlock Text=\"\u21BB Loop\" Foreground=\"White\" FontWeight=\"Bold\"/>");
+            sb.AppendLine("                                </Border>");
+            sb.AppendLine("                            </StackPanel>");
+            sb.AppendLine("                        </GroupBox>");
+            sb.AppendLine("                    </Grid>");
+            sb.AppendLine();
+            // Middle: the drag & drop scenario designer canvas.
+            sb.AppendLine("                    <GroupBox Grid.Column=\"1\" Header=\"Scenario Designer\">");
+            sb.AppendLine("                        <DockPanel>");
+            sb.AppendLine("                            <StackPanel DockPanel.Dock=\"Top\" Orientation=\"Horizontal\" Margin=\"0,0,0,4\">");
+            sb.AppendLine("                                <Button Content=\"\u25B6 Run Scenario\" Background=\"#238636\" Width=\"120\" Click=\"RunFlow_Click\"/>");
+            sb.AppendLine("                                <Button Content=\"\u25A0 Stop\" Background=\"#DA3633\" Width=\"70\" Margin=\"6,3,0,3\" Click=\"StopFlow_Click\"/>");
+            sb.AppendLine("                                <Button Content=\"Clear\" Background=\"#8B2E1F\" Margin=\"6,3,0,3\" Click=\"FlowClear_Click\"/>");
+            sb.AppendLine("                                <Button Content=\"\u2212\" Width=\"28\" Margin=\"12,3,0,3\" Click=\"FlowZoomOut_Click\" ToolTip=\"Zoom out\"/>");
+            sb.AppendLine("                                <TextBlock x:Name=\"FlowZoomText\" Text=\"100%\" Width=\"46\" TextAlignment=\"Center\" VerticalAlignment=\"Center\"/>");
+            sb.AppendLine("                                <Button Content=\"+\" Width=\"28\" Margin=\"0,3\" Click=\"FlowZoomIn_Click\" ToolTip=\"Zoom in\"/>");
+            sb.AppendLine("                                <Button Content=\"Fit\" Width=\"40\" Margin=\"6,3,0,3\" Click=\"FlowZoomReset_Click\" ToolTip=\"Reset zoom to 100%\"/>");
+            sb.AppendLine("                                <TextBlock Text=\"Drag the blue dot at the bottom of an action onto another action to draw an ordering arrow (or right-click one then another). Condition links become True then False. Run Scenario plays the flow.\" TextWrapping=\"Wrap\"");
+            sb.AppendLine("                                           VerticalAlignment=\"Center\" Margin=\"12,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                            </StackPanel>");
+            sb.AppendLine("                            <GroupBox DockPanel.Dock=\"Bottom\" Header=\"Scenario Steps\" Height=\"160\" Margin=\"0,4,0,0\">");
+            sb.AppendLine("                                <DataGrid x:Name=\"FlowStepsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                    <DataGrid.Columns>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"#\" Binding=\"{Binding Index}\" Width=\"40\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" Width=\"Auto\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Message\" Binding=\"{Binding Message}\" Width=\"*\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Details\" Binding=\"{Binding Details}\" Width=\"2*\"/>");
+            sb.AppendLine("                                        <DataGridTextColumn Header=\"Next Step\" Binding=\"{Binding Next}\" Width=\"2*\"/>");
+            sb.AppendLine("                                    </DataGrid.Columns>");
+            sb.AppendLine("                                </DataGrid>");
+            sb.AppendLine("                            </GroupBox>");
+            sb.AppendLine("                            <ScrollViewer HorizontalScrollBarVisibility=\"Auto\" VerticalScrollBarVisibility=\"Auto\">");
+            sb.AppendLine("                                <Canvas x:Name=\"FlowCanvas\" Background=\"#0B1220\" Width=\"1600\" Height=\"1100\" AllowDrop=\"True\"");
+            sb.AppendLine("                                        DragOver=\"FlowCanvas_DragOver\" Drop=\"FlowCanvas_Drop\"");
+            sb.AppendLine("                                        MouseMove=\"FlowCanvas_MouseMove\" MouseLeftButtonUp=\"FlowCanvas_MouseLeftButtonUp\"");
+            sb.AppendLine("                                        MouseLeftButtonDown=\"FlowCanvas_MouseLeftButtonDown\">");
+            sb.AppendLine("                                    <Canvas.LayoutTransform>");
+            sb.AppendLine("                                        <ScaleTransform x:Name=\"FlowZoomTransform\" ScaleX=\"1\" ScaleY=\"1\"/>");
+            sb.AppendLine("                                    </Canvas.LayoutTransform>");
+            sb.AppendLine("                                </Canvas>");
+            sb.AppendLine("                            </ScrollViewer>");
+            sb.AppendLine("                        </DockPanel>");
+            sb.AppendLine("                    </GroupBox>");
+            sb.AppendLine();
+            // Right: Step Properties for the selected node.
+            sb.AppendLine("                    <GroupBox Grid.Column=\"2\" Header=\"Step Properties\">");
+            sb.AppendLine("                        <ScrollViewer VerticalScrollBarVisibility=\"Auto\">");
+            sb.AppendLine("                            <StackPanel>");
+            sb.AppendLine("                                <TextBlock Text=\"Step Type\" Foreground=\"#7A8CA0\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                <TextBlock x:Name=\"FlowPropsHeader\" Text=\"(no node selected)\" FontWeight=\"Bold\" FontSize=\"14\" Margin=\"0,0,0,8\"/>");
+            sb.AppendLine("                                <StackPanel x:Name=\"FlowLoopPanel\" Visibility=\"Collapsed\">");
+            sb.AppendLine("                                    <TextBlock Text=\"Repeat (times)\" Foreground=\"#8FB4D9\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                    <TextBox x:Name=\"FlowLoopCountBox\" Text=\"3\" TextChanged=\"FlowLoopCountBox_TextChanged\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Send Message (each iteration)\" Foreground=\"#8FB4D9\" Margin=\"0,8,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"FlowLoopSendCombo\" SelectionChanged=\"FlowLoopSendCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                                <StackPanel x:Name=\"FlowMessagePanel\" Visibility=\"Collapsed\">");
+            sb.AppendLine("                                    <TextBlock Text=\"Message\" Foreground=\"#8FB4D9\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                    <TextBlock x:Name=\"FlowMessageInfoText\" Text=\"-\" TextWrapping=\"Wrap\" Margin=\"0,0,0,6\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Fields (edit the values this message sends; click an array row to open its cells)\" TextWrapping=\"Wrap\" Foreground=\"#7A8CA0\" Margin=\"0,0,0,4\"/>");
+            sb.AppendLine("                                    <DataGrid x:Name=\"FlowFieldsGrid\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" MaxHeight=\"380\" RowDetailsVisibilityMode=\"Collapsed\"");
+            sb.AppendLine("                                              PreviewMouseLeftButtonUp=\"ArrayRow_ToggleOnClick\" LoadingRow=\"ArrayRow_LoadingRow\">");
+            sb.AppendLine("                                        <DataGrid.Columns>");
+            sb.AppendLine("                                            <DataGridTemplateColumn Width=\"26\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                                <DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                    <DataTemplate>");
+            sb.AppendLine("                                                        <Border Background=\"Transparent\" Cursor=\"Hand\" Visibility=\"{Binding ExpanderVisibility}\"");
+            sb.AppendLine("                                                                ToolTip=\"Click the row to open / close the array cells\">");
+            sb.AppendLine("                                                            <TextBlock Text=\"{Binding ExpanderGlyph}\" Foreground=\"#8FB4D9\" FontSize=\"12\" HorizontalAlignment=\"Center\" VerticalAlignment=\"Center\"/>");
+            sb.AppendLine("                                                        </Border>");
+            sb.AppendLine("                                                    </DataTemplate>");
+            sb.AppendLine("                                                </DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                            </DataGridTemplateColumn>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
+            sb.AppendLine("                                            <DataGridTextColumn Header=\"Value\" Binding=\"{Binding Value, UpdateSourceTrigger=PropertyChanged}\" Width=\"*\"/>");
+            sb.AppendLine("                                        </DataGrid.Columns>");
+            sb.AppendLine("                                        <DataGrid.RowDetailsTemplate>");
+            sb.AppendLine("                                            <DataTemplate>");
+            sb.AppendLine("                                                <Border Background=\"#0B1220\" BorderBrush=\"#22303C\" BorderThickness=\"1\" CornerRadius=\"3\" Margin=\"26,2,8,6\" Padding=\"6\">");
+            sb.AppendLine("                                                    <StackPanel>");
+            sb.AppendLine("                                                        <StackPanel Orientation=\"Horizontal\" Margin=\"0,0,0,4\">");
+            sb.AppendLine("                                                            <TextBlock Text=\"Elements\" VerticalAlignment=\"Center\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                                            <TextBox Text=\"{Binding CountText, UpdateSourceTrigger=PropertyChanged}\" Width=\"60\" Margin=\"6,0,0,0\"/>");
+            sb.AppendLine("                                                            <Button Content=\"Apply\" Width=\"60\" Margin=\"6,0,0,0\" Click=\"ApplyFlowArrayCount_Click\"/>");
+            sb.AppendLine("                                                            <TextBlock Text=\"{Binding ArraySummary}\" VerticalAlignment=\"Center\" Margin=\"10,0,0,0\" Foreground=\"#7A8CA0\"/>");
+            sb.AppendLine("                                                        </StackPanel>");
+            sb.AppendLine("                                                        <DataGrid ItemsSource=\"{Binding Cells}\" AutoGenerateColumns=\"False\" CanUserAddRows=\"False\" MaxHeight=\"160\">");
+            sb.AppendLine("                                                            <DataGrid.Columns>");
+            sb.AppendLine("                                                                <DataGridTextColumn Header=\"Idx\" Binding=\"{Binding Index}\" IsReadOnly=\"True\" Width=\"46\"/>");
+            sb.AppendLine("                                                                <DataGridTextColumn Header=\"Offset\" Binding=\"{Binding Offset}\" IsReadOnly=\"True\" Width=\"60\"/>");
+            sb.AppendLine("                                                                <DataGridTextColumn Header=\"Field\" Binding=\"{Binding Field}\" IsReadOnly=\"True\" Width=\"2*\"/>");
+            sb.AppendLine("                                                                <DataGridTextColumn Header=\"Type\" Binding=\"{Binding Type}\" IsReadOnly=\"True\" Width=\"70\"/>");
+            sb.AppendLine("                                                                <DataGridTemplateColumn Header=\"Value\" Width=\"*\" IsReadOnly=\"True\">");
+            sb.AppendLine("                                                                    <DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                                        <DataTemplate>");
+            sb.AppendLine("                                                                            <TextBox Text=\"{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}\" BorderThickness=\"0\"");
+            sb.AppendLine("                                                                                     Background=\"Transparent\" Foreground=\"#E6EDF3\" Padding=\"2,0\" ToolTip=\"Type the cell value\"/>");
+            sb.AppendLine("                                                                        </DataTemplate>");
+            sb.AppendLine("                                                                    </DataGridTemplateColumn.CellTemplate>");
+            sb.AppendLine("                                                                </DataGridTemplateColumn>");
+            sb.AppendLine("                                                            </DataGrid.Columns>");
+            sb.AppendLine("                                                        </DataGrid>");
+            sb.AppendLine("                                                    </StackPanel>");
+            sb.AppendLine("                                                </Border>");
+            sb.AppendLine("                                            </DataTemplate>");
+            sb.AppendLine("                                        </DataGrid.RowDetailsTemplate>");
+            sb.AppendLine("                                    </DataGrid>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                                <StackPanel x:Name=\"FlowConditionPanel\" Visibility=\"Collapsed\">");
+            sb.AppendLine("                                    <TextBlock Text=\"Wait for Message\" Foreground=\"#8FB4D9\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"FlowWaitMessageCombo\" SelectionChanged=\"FlowWaitMessageCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Timeout (ms)\" Foreground=\"#8FB4D9\" Margin=\"0,8,0,2\"/>");
+            sb.AppendLine("                                    <TextBox x:Name=\"FlowTimeoutBox\" Text=\"5000\" TextChanged=\"FlowTimeoutBox_TextChanged\"/>");
+            sb.AppendLine("                                    <CheckBox x:Name=\"FlowIgnoreTimeoutCheck\" Content=\"Ignore Timeout\" Foreground=\"#E6EDF3\" Margin=\"0,6,0,0\" Click=\"FlowIgnoreTimeout_Click\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Logical Condition (optional)\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\" Margin=\"0,10,0,2\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Test a field of the awaited message, e.g. Field1 &gt;= 5. True branch when it holds, else False.\" TextWrapping=\"Wrap\" Foreground=\"#7A8CA0\" Margin=\"0,0,0,4\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"FlowCondFieldCombo\" SelectionChanged=\"FlowCondFieldCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                    <StackPanel Orientation=\"Horizontal\" Margin=\"0,4,0,0\">");
+            sb.AppendLine("                                        <ComboBox x:Name=\"FlowCondOperatorCombo\" Width=\"64\" SelectionChanged=\"FlowCondOperatorCombo_SelectionChanged\">");
+            sb.AppendLine("                                            <ComboBoxItem Content=\"&gt;\"/>");
+            sb.AppendLine("                                            <ComboBoxItem Content=\"&gt;=\" IsSelected=\"True\"/>");
+            sb.AppendLine("                                            <ComboBoxItem Content=\"&lt;\"/>");
+            sb.AppendLine("                                            <ComboBoxItem Content=\"&lt;=\"/>");
+            sb.AppendLine("                                            <ComboBoxItem Content=\"==\"/>");
+            sb.AppendLine("                                            <ComboBoxItem Content=\"!=\"/>");
+            sb.AppendLine("                                        </ComboBox>");
+            sb.AppendLine("                                        <TextBox x:Name=\"FlowCondValueBox\" Width=\"150\" Margin=\"6,0,0,0\" TextChanged=\"FlowCondValueBox_TextChanged\" ToolTip=\"Value to compare the field against\"/>");
+            sb.AppendLine("                                    </StackPanel>");
+            sb.AppendLine("                                    <TextBlock Text=\"On True\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\" Margin=\"0,10,0,2\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Send Message\" Foreground=\"#7A8CA0\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"FlowTrueSendCombo\" SelectionChanged=\"FlowTrueSendCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Next Step\" Foreground=\"#7A8CA0\" Margin=\"0,4,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"FlowOnTrueCombo\" DisplayMemberPath=\"Label\" SelectionChanged=\"FlowOnTrueCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"On False\" Foreground=\"#8FB4D9\" FontWeight=\"Bold\" Margin=\"0,10,0,2\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Send Message\" Foreground=\"#7A8CA0\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"FlowFalseSendCombo\" SelectionChanged=\"FlowFalseSendCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                    <TextBlock Text=\"Next Step\" Foreground=\"#7A8CA0\" Margin=\"0,4,0,2\"/>");
+            sb.AppendLine("                                    <ComboBox x:Name=\"FlowOnFalseCombo\" DisplayMemberPath=\"Label\" SelectionChanged=\"FlowOnFalseCombo_SelectionChanged\"/>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                                <StackPanel x:Name=\"FlowDelayPanel\" Visibility=\"Collapsed\">");
+            sb.AppendLine("                                    <TextBlock Text=\"Delay (ms)\" Foreground=\"#8FB4D9\" Margin=\"0,0,0,2\"/>");
+            sb.AppendLine("                                    <TextBox x:Name=\"FlowDelayBox\" Text=\"1000\" TextChanged=\"FlowDelayBox_TextChanged\"/>");
+            sb.AppendLine("                                </StackPanel>");
+            sb.AppendLine("                                <TextBlock Text=\"Description\" Foreground=\"#8FB4D9\" Margin=\"0,10,0,2\"/>");
+            sb.AppendLine("                                <TextBox x:Name=\"FlowDescriptionBox\" Height=\"90\" AcceptsReturn=\"True\" TextWrapping=\"Wrap\"");
+            sb.AppendLine("                                         VerticalScrollBarVisibility=\"Auto\" TextChanged=\"FlowDescriptionBox_TextChanged\"/>");
+            sb.AppendLine("                                <Button Content=\"Delete Node\" Background=\"#8B2E1F\" Margin=\"0,10,0,0\" Click=\"FlowDeleteNode_Click\"/>");
+            sb.AppendLine("                            </StackPanel>");
+            sb.AppendLine("                        </ScrollViewer>");
             sb.AppendLine("                    </GroupBox>");
             sb.AppendLine("                </Grid>");
             sb.AppendLine("            </TabItem>");
@@ -1061,6 +1262,7 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("using System.Text;");
             sb.AppendLine("using System.Text.Json;");
             sb.AppendLine("using System.Threading;");
+            sb.AppendLine("using System.Threading.Tasks;");
             sb.AppendLine("using System.Windows;");
             sb.AppendLine("using System.Windows.Input;");
             sb.AppendLine("using System.Windows.Threading;");
@@ -1114,6 +1316,30 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        private TimeSpan _lastCpuTime = System.Diagnostics.Process.GetCurrentProcess().TotalProcessorTime;");
             sb.AppendLine("        private readonly List<TimelineEvent> _recordGraphEvents = new();");
             sb.AppendLine("        private double _recordGraphZoom = 1.0;");
+            sb.AppendLine("        // Flow tab: visual designer nodes / connections and interaction state.");
+            sb.AppendLine("        private readonly List<FlowNodeVisual> _flowNodes = new();");
+            sb.AppendLine("        private readonly List<FlowConnection> _flowConnections = new();");
+            sb.AppendLine("        private FlowNodeVisual? _selectedFlowNode;");
+            sb.AppendLine("        private FlowNodeVisual? _movingFlowNode;");
+            sb.AppendLine("        private FlowNodeVisual? _flowConnectStart;");
+            sb.AppendLine("        // Flow tab: drag-to-connect state (drag a node's handle to draw an ordering arrow).");
+            sb.AppendLine("        private FlowNodeVisual? _flowConnectDragFrom;");
+            sb.AppendLine("        private Point? _flowConnectDragTo;");
+            sb.AppendLine("        private Point _flowMoveOffset;");
+            sb.AppendLine("        private bool _loadingFlowProps;");
+            sb.AppendLine("        private int _flowNodeSeq;");
+            sb.AppendLine("        private double _flowZoom = 1.0;");
+            sb.AppendLine("        // Flow tab: editable fields of the selected Message node (shown in Step Properties).");
+            sb.AppendLine("        private readonly ObservableCollection<FieldRow> _flowFields = new();");
+            sb.AppendLine("        // Flow tab: the bottom Scenario Steps table rows.");
+            sb.AppendLine("        private readonly ObservableCollection<FlowStepRow> _flowStepRows = new();");
+            sb.AppendLine("        // Flow tab: execution state (the send order follows the connection arrows).");
+            sb.AppendLine("        private FlowNodeVisual? _runningFlowNode;");
+            sb.AppendLine("        private readonly Dictionary<FlowNodeVisual, int> _flowOrder = new();");
+            sb.AppendLine("        private volatile bool _flowRunning;");
+            sb.AppendLine("        private System.Threading.CancellationTokenSource? _flowRunCts;");
+            sb.AppendLine("        private TaskCompletionSource<byte[]?>? _flowWaitTcs;");
+            sb.AppendLine("        private string? _flowWaitMessage;");
             sb.AppendLine("        private ITransport? _transport;");
             sb.AppendLine("        private int _sequence;");
             sb.AppendLine();
@@ -1126,6 +1352,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            ReceivedFieldsGrid.ItemsSource = _receivedFields;");
             sb.AppendLine("            ScenarioStepsList.ItemsSource = _scenarioSteps;");
             sb.AppendLine("            StepFieldsGrid.ItemsSource = _stepFields;");
+            sb.AppendLine("            FlowFieldsGrid.ItemsSource = _flowFields;");
+            sb.AppendLine("            FlowStepsGrid.ItemsSource = _flowStepRows;");
             sb.AppendLine("            foreach (var m in MessageCatalog.Messages)");
             sb.AppendLine("            {");
             sb.AppendLine("                MessageList.Items.Add(m.Name);");
@@ -1133,6 +1361,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("                AddGraphFilter(m.Name);");
             sb.AppendLine("                ResponseTriggerCombo.Items.Add(m.Name);");
             sb.AppendLine("                ResponseSendCombo.Items.Add(m.Name);");
+            sb.AppendLine("                FlowMessagesList.Items.Add(m.Name);");
+            sb.AppendLine("                FlowWaitMessageCombo.Items.Add(m.Name);");
             sb.AppendLine("            }");
             sb.AppendLine("            if (MessageList.Items.Count > 0)");
             sb.AppendLine("                MessageList.SelectedIndex = 0;");
@@ -1535,6 +1765,8 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("            UpdateStat(name, data.Length, outgoing: false, error: data.Length < 2, dropped: info is null && data.Length >= 2, crcError: HasCrcError(info, data));");
             sb.AppendLine("            // Scenario Response steps may auto-send a reply when this message matches their rule.");
             sb.AppendLine("            CheckScenarioResponses(info, name, data);");
+            sb.AppendLine("            // Flow tab: release a Condition node that is waiting for this message.");
+            sb.AppendLine("            CheckFlowWait(name, data);");
             sb.AppendLine("            _monitor.Insert(0, new MonitorRow");
             sb.AppendLine("            {");
             sb.AppendLine("                Time = DateTime.Now.ToString(\"HH:mm:ss.fff\"), From = from, Message = name, Bytes = data.Length");
@@ -1622,6 +1854,8 @@ namespace InterfaceWrapper.Services
             AppendLookAndFeelLogic(sb);
             sb.AppendLine();
             AppendScenarioLogic(sb);
+            sb.AppendLine();
+            AppendFlowLogic(sb);
             sb.AppendLine();
             AppendRecordLogic(sb);
             sb.AppendLine();
@@ -2263,6 +2497,1020 @@ namespace InterfaceWrapper.Services
                     private void ClearScenarioLog_Click(object sender, RoutedEventArgs e)
                     {
                         ScenarioLogBox.Clear();
+                    }
+
+            """);
+        }
+
+        /// <summary>Emits the Flow tab code-behind: palette drag &amp; drop onto the canvas,
+        /// node drawing (Message = rectangle, Condition = rhombus, Delay/Loop), node moving,
+        /// connecting and the Step Properties editor for the selected node.</summary>
+        private static void AppendFlowLogic(StringBuilder sb)
+        {
+            sb.Append("""
+                    // ---- Flow tab: visual scenario designer (drag & drop nodes on a canvas) ----
+                    private const string FlowConditionToken = "::FLOWCOND::";
+                    private const string FlowDelayToken = "::FLOWDELAY::";
+                    private const string FlowLoopToken = "::FLOWLOOP::";
+
+                    /// <summary>Remembers the drag start so a palette item only starts a drag after a threshold.</summary>
+                    private void FlowPaletteItem_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+                    {
+                        _dragStartPoint = e.GetPosition(null);
+                    }
+
+                    private void FlowMessages_PreviewMouseMove(object sender, MouseEventArgs e)
+                    {
+                        if (e.LeftButton != MouseButtonState.Pressed) return;
+                        if (!FlowDragStarted(e)) return;
+                        if (FlowMessagesList.SelectedItem is not string name) return;
+                        DragDrop.DoDragDrop(FlowMessagesList, "MSG:" + name, DragDropEffects.Copy);
+                    }
+
+                    private void FlowItem_PreviewMouseMove(object sender, MouseEventArgs e)
+                    {
+                        if (e.LeftButton != MouseButtonState.Pressed) return;
+                        if (!FlowDragStarted(e)) return;
+                        if ((sender as FrameworkElement)?.Tag is string token)
+                            DragDrop.DoDragDrop((DependencyObject)sender, token, DragDropEffects.Copy);
+                    }
+
+                    private bool FlowDragStarted(MouseEventArgs e)
+                    {
+                        var pos = e.GetPosition(null);
+                        return Math.Abs(pos.X - _dragStartPoint.X) >= SystemParameters.MinimumHorizontalDragDistance ||
+                               Math.Abs(pos.Y - _dragStartPoint.Y) >= SystemParameters.MinimumVerticalDragDistance;
+                    }
+
+                    private void FlowCanvas_DragOver(object sender, DragEventArgs e)
+                    {
+                        e.Effects = e.Data.GetDataPresent(DataFormats.StringFormat) ? DragDropEffects.Copy : DragDropEffects.None;
+                        e.Handled = true;
+                    }
+
+                    /// <summary>Drops a palette item onto the canvas as a new node at the cursor.</summary>
+                    private void FlowCanvas_Drop(object sender, DragEventArgs e)
+                    {
+                        if (e.Data.GetData(DataFormats.StringFormat) is not string payload) return;
+                        var p = e.GetPosition(FlowCanvas);
+                        if (payload.StartsWith("MSG:", StringComparison.Ordinal))
+                            AddFlowNode(FlowNodeKind.Message, payload.Substring(4), p.X - 70, p.Y - 26);
+                        else if (payload == FlowConditionToken)
+                            AddFlowNode(FlowNodeKind.Condition, "Condition", p.X - 80, p.Y - 30);
+                        else if (payload == FlowDelayToken)
+                            AddFlowNode(FlowNodeKind.Delay, "Delay", p.X - 60, p.Y - 24);
+                        else if (payload == FlowLoopToken)
+                            AddFlowNode(FlowNodeKind.Loop, "Loop", p.X - 60, p.Y - 24);
+                    }
+
+                    /// <summary>Creates a flow node, positions it and redraws the canvas.</summary>
+                    private void AddFlowNode(FlowNodeKind kind, string title, double left, double top)
+                    {
+                        var node = new FlowNodeVisual
+                        {
+                            Kind = kind,
+                            Title = title,
+                            Left = Math.Max(0, left),
+                            Top = Math.Max(0, top),
+                            WaitMessage = kind == FlowNodeKind.Condition ? title : string.Empty,
+                            Id = ++_flowNodeSeq
+                        };
+                        if (kind == FlowNodeKind.Condition) node.WaitMessage = MessageCatalog.Messages.FirstOrDefault()?.Name ?? string.Empty;
+                        _flowNodes.Add(node);
+                        RedrawFlow();
+                        SelectFlowNode(node);
+                        Log($"Flow: added {kind} node.");
+                    }
+
+                    /// <summary>Rebuilds every connection line and node shape on the canvas.</summary>
+                    private void RedrawFlow()
+                    {
+                        if (FlowCanvas is null) return;
+                        ComputeFlowOrder();
+                        FlowCanvas.Children.Clear();
+                        // Connections first so the shapes are drawn on top of the lines.
+                        foreach (var c in _flowConnections)
+                            DrawFlowConnection(c);
+                        // Rubber-band arrow shown while the user drags a new link between actions.
+                        if (_flowConnectDragFrom is not null && _flowConnectDragTo is { } dragTo)
+                            DrawFlowDragArrow(_flowConnectDragFrom, dragTo);
+                        foreach (var node in _flowNodes)
+                            DrawFlowNode(node);
+                        RefreshFlowSteps();
+                    }
+
+                    /// <summary>Draws a connection as an arrow from the source to the target node,
+                    /// so the arrow direction shows the order in which messages are sent.</summary>
+                    private void DrawFlowConnection(FlowConnection c)
+                    {
+                        var brush = c.Branch switch
+                        {
+                            FlowBranch.True => FlowRgb(0x23, 0x86, 0x36),
+                            FlowBranch.False => FlowRgb(0xDA, 0x36, 0x33),
+                            _ => FlowBrush("Theme.HeaderForeground", 0x8F, 0xB4, 0xD9)
+                        };
+                        double x1 = c.From.CenterX, y1 = c.From.Bottom, x2 = c.To.CenterX, y2 = c.To.Top;
+                        FlowCanvas.Children.Add(new System.Windows.Shapes.Line
+                        {
+                            X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = brush, StrokeThickness = 2
+                        });
+                        // Arrowhead at the target end.
+                        double dx = x2 - x1, dy = y2 - y1;
+                        double len = Math.Max(1.0, Math.Sqrt(dx * dx + dy * dy));
+                        double ux = dx / len, uy = dy / len;
+                        const double head = 12, halfW = 6;
+                        double baseX = x2 - ux * head, baseY = y2 - uy * head;
+                        FlowCanvas.Children.Add(new System.Windows.Shapes.Polygon
+                        {
+                            Fill = brush,
+                            Points = new System.Windows.Media.PointCollection
+                            {
+                                new Point(x2, y2),
+                                new Point(baseX - uy * halfW, baseY + ux * halfW),
+                                new Point(baseX + uy * halfW, baseY - ux * halfW)
+                            }
+                        });
+                        // Label True / False branches at the midpoint of the line.
+                        if (c.Branch != FlowBranch.Normal)
+                        {
+                            var tag = new System.Windows.Controls.TextBlock
+                            {
+                                Text = c.Branch == FlowBranch.True ? "True" : "False",
+                                Foreground = brush, FontWeight = FontWeights.Bold, FontSize = 11, IsHitTestVisible = false
+                            };
+                            System.Windows.Controls.Canvas.SetLeft(tag, (x1 + x2) / 2 + 4);
+                            System.Windows.Controls.Canvas.SetTop(tag, (y1 + y2) / 2 - 8);
+                            FlowCanvas.Children.Add(tag);
+                        }
+                    }
+
+                    /// <summary>Draws one node: a Message is a rectangle, a Condition is a rhombus,
+                    /// Delay and Loop are rounded blocks. Each shape carries the node for hit-testing.</summary>
+                    private void DrawFlowNode(FlowNodeVisual node)
+                    {
+                        var fill = node.Kind switch
+                        {
+                            FlowNodeKind.Message => FlowRgb(0x16, 0x2C, 0x50),
+                            FlowNodeKind.Condition => FlowRgb(0xC8, 0x86, 0x2B),
+                            FlowNodeKind.Delay => FlowRgb(0x8A, 0x6D, 0x1B),
+                            _ => FlowRgb(0x6E, 0x40, 0xC9)
+                        };
+                        var stroke = node == _runningFlowNode ? FlowRgb(0x23, 0x86, 0x36)
+                            : node == _selectedFlowNode ? FlowRgb(0x1F, 0x6F, 0xEB)
+                            : FlowRgb(0x22, 0x30, 0x3C);
+                        var strokeWidth = node == _runningFlowNode ? 3.5 : node == _selectedFlowNode ? 3.0 : 1.5;
+
+                        System.Windows.Shapes.Shape shape;
+                        if (node.Kind == FlowNodeKind.Condition)
+                        {
+                            // Rhombus (diamond): the four corners sit at the midpoints of each side.
+                            var poly = new System.Windows.Shapes.Polygon { Fill = fill, Stroke = stroke, StrokeThickness = strokeWidth };
+                            poly.Points = new System.Windows.Media.PointCollection
+                            {
+                                new Point(node.Width / 2, 0), new Point(node.Width, node.Height / 2),
+                                new Point(node.Width / 2, node.Height), new Point(0, node.Height / 2)
+                            };
+                            shape = poly;
+                        }
+                        else
+                        {
+                            shape = new System.Windows.Shapes.Rectangle
+                            {
+                                Width = node.Width, Height = node.Height, Fill = fill, Stroke = stroke, StrokeThickness = strokeWidth,
+                                RadiusX = node.Kind == FlowNodeKind.Message ? 4 : 10, RadiusY = node.Kind == FlowNodeKind.Message ? 4 : 10
+                            };
+                        }
+                        shape.Tag = node;
+                        shape.Cursor = Cursors.SizeAll;
+                        shape.MouseLeftButtonDown += FlowNode_MouseLeftButtonDown;
+                        shape.MouseRightButtonUp += FlowNode_MouseRightButtonUp;
+                        System.Windows.Controls.Canvas.SetLeft(shape, node.Left);
+                        System.Windows.Controls.Canvas.SetTop(shape, node.Top);
+                        FlowCanvas.Children.Add(shape);
+
+                        // Node label (title + a short subtitle) centered on the shape.
+                        var text = new System.Windows.Controls.TextBlock
+                        {
+                            Text = node.Caption, Foreground = System.Windows.Media.Brushes.White,
+                            FontWeight = FontWeights.Bold, TextAlignment = TextAlignment.Center,
+                            Width = node.Width, IsHitTestVisible = false, TextWrapping = TextWrapping.Wrap
+                        };
+                        System.Windows.Controls.Canvas.SetLeft(text, node.Left);
+                        System.Windows.Controls.Canvas.SetTop(text, node.Top + node.Height / 2 - 16);
+                        FlowCanvas.Children.Add(text);
+
+                        // Connection handle: drag from this dot onto another action to draw an
+                        // ordering arrow (the arrow direction sets which action runs next).
+                        var connector = new System.Windows.Shapes.Ellipse
+                        {
+                            Width = 14, Height = 14, Fill = FlowRgb(0x1F, 0x6F, 0xEB),
+                            Stroke = System.Windows.Media.Brushes.White, StrokeThickness = 1.5,
+                            Cursor = Cursors.Cross, Tag = node,
+                            ToolTip = "Drag onto another action to draw an arrow that sets the order"
+                        };
+                        connector.MouseLeftButtonDown += FlowConnector_MouseLeftButtonDown;
+                        System.Windows.Controls.Canvas.SetLeft(connector, node.CenterX - 7);
+                        System.Windows.Controls.Canvas.SetTop(connector, node.Bottom - 7);
+                        FlowCanvas.Children.Add(connector);
+
+                        // Order badge: the node's position in the send order (set by the arrows).
+                        if (_flowOrder.TryGetValue(node, out var order))
+                        {
+                            var badge = new System.Windows.Shapes.Ellipse
+                            {
+                                Width = 22, Height = 22, Fill = FlowRgb(0x1F, 0x6F, 0xEB),
+                                Stroke = System.Windows.Media.Brushes.White, StrokeThickness = 1, IsHitTestVisible = false
+                            };
+                            System.Windows.Controls.Canvas.SetLeft(badge, node.Left - 8);
+                            System.Windows.Controls.Canvas.SetTop(badge, node.Top - 8);
+                            FlowCanvas.Children.Add(badge);
+                            var badgeText = new System.Windows.Controls.TextBlock
+                            {
+                                Text = order.ToString(), Foreground = System.Windows.Media.Brushes.White,
+                                FontWeight = FontWeights.Bold, FontSize = 11, Width = 22,
+                                TextAlignment = TextAlignment.Center, IsHitTestVisible = false
+                            };
+                            System.Windows.Controls.Canvas.SetLeft(badgeText, node.Left - 8);
+                            System.Windows.Controls.Canvas.SetTop(badgeText, node.Top - 6);
+                            FlowCanvas.Children.Add(badgeText);
+                        }
+                    }
+
+                    private static System.Windows.Media.SolidColorBrush FlowRgb(byte r, byte g, byte b) =>
+                        new(System.Windows.Media.Color.FromRgb(r, g, b));
+
+                    private System.Windows.Media.Brush FlowBrush(string themeKey, byte r, byte g, byte b) =>
+                        TryFindResource(themeKey) as System.Windows.Media.Brush ?? FlowRgb(r, g, b);
+
+                    /// <summary>Starts moving a node and selects it.</summary>
+                    private void FlowNode_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+                    {
+                        if ((sender as FrameworkElement)?.Tag is not FlowNodeVisual node) return;
+                        SelectFlowNode(node);
+                        _movingFlowNode = node;
+                        var p = e.GetPosition(FlowCanvas);
+                        _flowMoveOffset = new Point(p.X - node.Left, p.Y - node.Top);
+                        FlowCanvas.CaptureMouse();
+                        e.Handled = true;
+                    }
+
+                    /// <summary>Right-click connects nodes: first click picks the source, second the target.</summary>
+                    private void FlowNode_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+                    {
+                        if ((sender as FrameworkElement)?.Tag is not FlowNodeVisual node) return;
+                        if (_flowConnectStart is null)
+                        {
+                            _flowConnectStart = node;
+                            Log($"Flow: connect from '{node.Title}' - right-click the target node (or drag its blue dot).");
+                        }
+                        else
+                        {
+                            if (!ReferenceEquals(_flowConnectStart, node)) AddFlowLink(_flowConnectStart, node);
+                            _flowConnectStart = null;
+                        }
+                        e.Handled = true;
+                    }
+
+                    /// <summary>Begins dragging a new ordering arrow from a node's connection handle.</summary>
+                    private void FlowConnector_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+                    {
+                        if ((sender as FrameworkElement)?.Tag is not FlowNodeVisual node) return;
+                        SelectFlowNode(node);
+                        _flowConnectDragFrom = node;
+                        _flowConnectDragTo = e.GetPosition(FlowCanvas);
+                        FlowCanvas.CaptureMouse();
+                        e.Handled = true;
+                    }
+
+                    /// <summary>Creates a directed link (arrow) between two actions, choosing the branch
+                    /// automatically (a Condition's first link is True, its second is False; others are the
+                    /// plain next step). The arrow direction sets the run order.</summary>
+                    private void AddFlowLink(FlowNodeVisual from, FlowNodeVisual to)
+                    {
+                        if (ReferenceEquals(from, to)) return;
+                        var branch = FlowBranch.Normal;
+                        if (from.Kind == FlowNodeKind.Condition)
+                            branch = BranchTarget(from, FlowBranch.True) is null ? FlowBranch.True : FlowBranch.False;
+                        _flowConnections.RemoveAll(c => ReferenceEquals(c.From, from) && c.Branch == branch);
+                        _flowConnections.Add(new FlowConnection { From = from, To = to, Branch = branch });
+                        Log($"Flow: linked '{from.Title}' -> '{to.Title}' ({branch}).");
+                        RedrawFlow();
+                    }
+
+                    /// <summary>The node whose rectangle contains the point (optionally excluding one),
+                    /// searched top-most first so overlapping nodes resolve to the visible one.</summary>
+                    private FlowNodeVisual? FlowNodeAt(Point p, FlowNodeVisual? exclude = null)
+                    {
+                        for (int i = _flowNodes.Count - 1; i >= 0; i--)
+                        {
+                            var n = _flowNodes[i];
+                            if (ReferenceEquals(n, exclude)) continue;
+                            if (p.X >= n.Left && p.X <= n.Left + n.Width && p.Y >= n.Top && p.Y <= n.Top + n.Height)
+                                return n;
+                        }
+                        return null;
+                    }
+
+                    /// <summary>Draws the temporary dashed arrow that follows the cursor while linking.</summary>
+                    private void DrawFlowDragArrow(FlowNodeVisual from, Point to)
+                    {
+                        var brush = FlowRgb(0x1F, 0x6F, 0xEB);
+                        FlowCanvas.Children.Add(new System.Windows.Shapes.Line
+                        {
+                            X1 = from.CenterX, Y1 = from.Bottom, X2 = to.X, Y2 = to.Y,
+                            Stroke = brush, StrokeThickness = 2,
+                            StrokeDashArray = new System.Windows.Media.DoubleCollection { 4, 3 }
+                        });
+                    }
+
+                    private void FlowCanvas_MouseMove(object sender, MouseEventArgs e)
+                    {
+                        if (e.LeftButton != MouseButtonState.Pressed) return;
+                        // Dragging a new arrow: update the rubber-band to follow the cursor.
+                        if (_flowConnectDragFrom is not null)
+                        {
+                            _flowConnectDragTo = e.GetPosition(FlowCanvas);
+                            RedrawFlow();
+                            return;
+                        }
+                        if (_movingFlowNode is null) return;
+                        var p = e.GetPosition(FlowCanvas);
+                        _movingFlowNode.Left = Math.Max(0, p.X - _flowMoveOffset.X);
+                        _movingFlowNode.Top = Math.Max(0, p.Y - _flowMoveOffset.Y);
+                        RedrawFlow();
+                    }
+
+                    private void FlowCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+                    {
+                        // Finishing a drag-to-connect: link to the action dropped onto (if any).
+                        if (_flowConnectDragFrom is not null)
+                        {
+                            var target = FlowNodeAt(e.GetPosition(FlowCanvas), _flowConnectDragFrom);
+                            if (target is not null) AddFlowLink(_flowConnectDragFrom, target);
+                            else Log("Flow: drop the arrow on another action to link them.");
+                            _flowConnectDragFrom = null;
+                            _flowConnectDragTo = null;
+                            FlowCanvas.ReleaseMouseCapture();
+                            RedrawFlow();
+                            return;
+                        }
+                        _movingFlowNode = null;
+                        FlowCanvas.ReleaseMouseCapture();
+                    }
+
+                    /// <summary>Clicking the empty canvas clears the selection and any pending connection.</summary>
+                    private void FlowCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+                    {
+                        if (ReferenceEquals(e.OriginalSource, FlowCanvas))
+                        {
+                            _flowConnectStart = null;
+                            SelectFlowNode(null);
+                        }
+                    }
+
+                    /// <summary>Selects a node and loads it into the Step Properties panel.</summary>
+                    private void SelectFlowNode(FlowNodeVisual? node)
+                    {
+                        _selectedFlowNode = node;
+                        _loadingFlowProps = true;
+                        FlowMessagePanel.Visibility = Visibility.Collapsed;
+                        FlowConditionPanel.Visibility = Visibility.Collapsed;
+                        FlowDelayPanel.Visibility = Visibility.Collapsed;
+                        FlowLoopPanel.Visibility = Visibility.Collapsed;
+                        _flowFields.Clear();
+                        if (node is null)
+                        {
+                            FlowPropsHeader.Text = "(no node selected)";
+                            FlowDescriptionBox.Text = string.Empty;
+                            _loadingFlowProps = false;
+                            RedrawFlow();
+                            return;
+                        }
+                        FlowPropsHeader.Text = node.Kind.ToString();
+                        FlowDescriptionBox.Text = node.Description;
+                        switch (node.Kind)
+                        {
+                            case FlowNodeKind.Message:
+                                FlowMessagePanel.Visibility = Visibility.Visible;
+                                var info = MessageCatalog.ByName(node.Title);
+                                FlowMessageInfoText.Text = info is null
+                                    ? node.Title
+                                    : $"{info.Name}\nId: {info.MessageId}   Length: {info.Length} bytes";
+                                LoadFlowFields(node, node.Title);
+                                break;
+                            case FlowNodeKind.Condition:
+                                FlowConditionPanel.Visibility = Visibility.Visible;
+                                FlowWaitMessageCombo.SelectedItem = node.WaitMessage;
+                                FlowTimeoutBox.Text = node.TimeoutMs.ToString();
+                                FlowIgnoreTimeoutCheck.IsChecked = node.IgnoreTimeout;
+                                PopulateConditionFields(node);
+                                SelectConditionOperator(node.ConditionOperator);
+                                FlowCondValueBox.Text = node.ConditionValue;
+                                PopulateConditionSendCombos(node);
+                                PopulateBranchCombos(node);
+                                break;
+                            case FlowNodeKind.Delay:
+                                FlowDelayPanel.Visibility = Visibility.Visible;
+                                FlowDelayBox.Text = node.DelayMs.ToString();
+                                break;
+                            case FlowNodeKind.Loop:
+                                FlowLoopPanel.Visibility = Visibility.Visible;
+                                FlowLoopCountBox.Text = node.LoopCount.ToString();
+                                PopulateLoopSendCombo(node);
+                                if (!string.IsNullOrEmpty(node.LoopSendMessage))
+                                {
+                                    var loopInfo = MessageCatalog.ByName(node.LoopSendMessage);
+                                    FlowMessagePanel.Visibility = Visibility.Visible;
+                                    FlowMessageInfoText.Text = loopInfo is null
+                                        ? node.LoopSendMessage
+                                        : $"Loop sends: {loopInfo.Name}\nId: {loopInfo.MessageId}   Length: {loopInfo.Length} bytes";
+                                    LoadFlowFields(node, node.LoopSendMessage);
+                                }
+                                break;
+                        }
+                        _loadingFlowProps = false;
+                        RedrawFlow();
+                    }
+
+                    private void FlowWaitMessageCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        node.WaitMessage = FlowWaitMessageCombo.SelectedItem as string ?? string.Empty;
+                        // The condition field list depends on the awaited message; reset it.
+                        node.ConditionField = string.Empty;
+                        PopulateConditionFields(node);
+                        RedrawFlow();
+                    }
+
+                    private void FlowTimeoutBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        if (int.TryParse(FlowTimeoutBox.Text, out var ms)) { node.TimeoutMs = ms; RedrawFlow(); }
+                    }
+
+                    private void FlowDelayBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Delay } node) return;
+                        if (int.TryParse(FlowDelayBox.Text, out var ms)) { node.DelayMs = ms; RedrawFlow(); }
+                    }
+
+                    private void FlowLoopCountBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Loop } node) return;
+                        if (int.TryParse(FlowLoopCountBox.Text, out var n)) { node.LoopCount = n; RedrawFlow(); }
+                    }
+
+                    private void FlowDescriptionBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is null) return;
+                        _selectedFlowNode.Description = FlowDescriptionBox.Text;
+                    }
+
+                    /// <summary>Deletes the selected node and any connections that touch it.</summary>
+                    private void FlowDeleteNode_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (_selectedFlowNode is null) return;
+                        _flowConnections.RemoveAll(c => ReferenceEquals(c.From, _selectedFlowNode) || ReferenceEquals(c.To, _selectedFlowNode));
+                        _flowNodes.Remove(_selectedFlowNode);
+                        Log($"Flow: deleted {_selectedFlowNode.Kind} node.");
+                        SelectFlowNode(null);
+                    }
+
+                    // ---- Flow: edit all fields of the selected Message node in the Step Properties panel ----
+                    /// <summary>Loads all the fields (scalars + collapsible array rows) of a Message node
+                    /// into the FlowFieldsGrid; edits sync into the node so Run sends the shown values.</summary>
+                    private void LoadFlowFields(FlowNodeVisual node, string messageName)
+                    {
+                        _flowFields.Clear();
+                        var info = MessageCatalog.ByName(messageName);
+                        if (info is null) return;
+                        node.FieldValues ??= info.Fields.ToDictionary(f => f.Field, f => f.DefaultValue);
+                        var arrays = new Queue<FieldRow>(info.Arrays.OrderBy(a => a.BaseOffset)
+                            .Select(a => CreateFlowArrayRow(a, node)));
+                        foreach (var f in info.Fields)
+                        {
+                            while (arrays.Count > 0 && arrays.Peek().Offset <= f.Offset)
+                                _flowFields.Add(arrays.Dequeue());
+                            var row = new FieldRow(f)
+                            {
+                                Value = node.FieldValues.TryGetValue(f.Field, out var v) ? v : f.DefaultValue
+                            };
+                            row.PropertyChanged += (_, args) =>
+                            {
+                                if (args.PropertyName == nameof(FieldRow.Value) && node.FieldValues is not null)
+                                    node.FieldValues[row.Field] = row.Value;
+                            };
+                            _flowFields.Add(row);
+                        }
+                        while (arrays.Count > 0)
+                            _flowFields.Add(arrays.Dequeue());
+                    }
+
+                    /// <summary>Creates an array row for a Message node: restores the saved element
+                    /// count and cell values and syncs edits back into the node.</summary>
+                    private static FieldRow CreateFlowArrayRow(ArrayInfo array, FlowNodeVisual node)
+                    {
+                        var count = Math.Min(1, array.MaxCount);
+                        if (node.FieldValues is not null &&
+                            node.FieldValues.TryGetValue(array.Name + "#count", out var saved) &&
+                            int.TryParse(saved, out var n))
+                            count = n;
+                        var row = new FieldRow(array, count);
+                        WireFlowArrayCells(row, node);
+                        return row;
+                    }
+
+                    /// <summary>Restores the saved cell values of an array row and syncs edits into the node.</summary>
+                    private static void WireFlowArrayCells(FieldRow row, FlowNodeVisual node)
+                    {
+                        node.FieldValues ??= new Dictionary<string, string>();
+                        node.FieldValues[row.Field + "#count"] = row.CountText;
+                        foreach (var cell in row.Cells)
+                        {
+                            if (node.FieldValues.TryGetValue(cell.Field, out var v)) cell.Value = v;
+                            cell.PropertyChanged += (_, args) =>
+                            {
+                                if (args.PropertyName == nameof(ArrayCellRow.Value) && node.FieldValues is not null)
+                                    node.FieldValues[cell.Field] = cell.Value;
+                            };
+                        }
+                    }
+
+                    /// <summary>Apply button inside a Message node's array row: rebuilds the cells to the
+                    /// requested count, restores saved values and updates the array's count field.</summary>
+                    private void ApplyFlowArrayCount_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (_selectedFlowNode is not { } node || node.Kind is not (FlowNodeKind.Message or FlowNodeKind.Loop)) return;
+                        if ((sender as FrameworkElement)?.DataContext is not FieldRow { ArrayDef: { } array } row) return;
+                        var applied = row.RebuildCells(int.TryParse(row.CountText, out var n) ? n : 0);
+                        WireFlowArrayCells(row, node);
+                        if (array.CountField is not null)
+                            foreach (var f in _flowFields)
+                                if (!f.IsArray && f.Field == array.CountField) f.Value = applied.ToString();
+                    }
+
+                    /// <summary>Builds the field rows a Message node sends from its saved values over the defaults.</summary>
+                    private static List<FieldRow> BuildFlowFields(MessageInfo info, FlowNodeVisual node)
+                    {
+                        var list = new List<FieldRow>(info.Fields.Length);
+                        foreach (var f in info.Fields)
+                        {
+                            var row = new FieldRow(f) { Value = f.DefaultValue };
+                            if (node.FieldValues is not null && node.FieldValues.TryGetValue(f.Field, out var v)) row.Value = v;
+                            list.Add(row);
+                        }
+                        return list;
+                    }
+
+                    /// <summary>Builds the array cells a Message node sends from its saved values.</summary>
+                    private static List<ArrayCellRow> BuildFlowArrayCells(MessageInfo info, FlowNodeVisual node)
+                    {
+                        var cells = new List<ArrayCellRow>();
+                        if (node.FieldValues is null) return cells;
+                        foreach (var array in info.Arrays)
+                        {
+                            var count = 0;
+                            if (node.FieldValues.TryGetValue(array.Name + "#count", out var saved))
+                                _ = int.TryParse(saved, out count);
+                            count = Math.Clamp(count, 0, array.MaxCount);
+                            for (int i = 0; i < count; i++)
+                                foreach (var el in array.Elements)
+                                {
+                                    var field = el.Field.Replace($"[{array.IndexVar}]", $"[{i}]", StringComparison.Ordinal);
+                                    cells.Add(new ArrayCellRow
+                                    {
+                                        Index = i,
+                                        Offset = array.BaseOffset + i * array.Stride + el.RelativeOffset,
+                                        Field = field,
+                                        Type = el.Type,
+                                        Value = node.FieldValues.TryGetValue(field, out var v) ? v : "0"
+                                    });
+                                }
+                        }
+                        return cells;
+                    }
+
+                    // ---- Flow branching (Condition True/False), zoom and the steps table ----
+                    /// <summary>The node a given branch points to from this node.</summary>
+                    private FlowNodeVisual? BranchTarget(FlowNodeVisual node, FlowBranch branch) =>
+                        _flowConnections.FirstOrDefault(c => ReferenceEquals(c.From, node) && c.Branch == branch)?.To;
+
+                    /// <summary>Sets (or clears) the target of a branch from a node, replacing any existing one.</summary>
+                    private void SetBranchTarget(FlowNodeVisual from, FlowBranch branch, FlowNodeVisual? to)
+                    {
+                        _flowConnections.RemoveAll(c => ReferenceEquals(c.From, from) && c.Branch == branch);
+                        if (to is not null && !ReferenceEquals(to, from))
+                            _flowConnections.Add(new FlowConnection { From = from, To = to, Branch = branch });
+                        RedrawFlow();
+                    }
+
+                    /// <summary>Fills the On True / On False combos of a Condition node with the other nodes.</summary>
+                    private void PopulateBranchCombos(FlowNodeVisual node)
+                    {
+                        var choices = new List<FlowNodeVisual?> { null };
+                        choices.AddRange(_flowNodes.Where(n => !ReferenceEquals(n, node)));
+                        FlowOnTrueCombo.ItemsSource = choices;
+                        FlowOnFalseCombo.ItemsSource = new List<FlowNodeVisual?>(choices);
+                        FlowOnTrueCombo.SelectedItem = BranchTarget(node, FlowBranch.True);
+                        FlowOnFalseCombo.SelectedItem = BranchTarget(node, FlowBranch.False);
+                    }
+
+                    private void FlowOnTrueCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        SetBranchTarget(node, FlowBranch.True, FlowOnTrueCombo.SelectedItem as FlowNodeVisual);
+                    }
+
+                    private void FlowOnFalseCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        SetBranchTarget(node, FlowBranch.False, FlowOnFalseCombo.SelectedItem as FlowNodeVisual);
+                    }
+
+                    private void FlowIgnoreTimeout_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        node.IgnoreTimeout = FlowIgnoreTimeoutCheck.IsChecked == true;
+                    }
+
+                    // ---- Flow Condition: optional logical test on a field of the awaited message ----
+                    private const string NoConditionField = "(no field - just wait)";
+
+                    /// <summary>Fills the condition field combo with the fields of the awaited message.</summary>
+                    private void PopulateConditionFields(FlowNodeVisual node)
+                    {
+                        FlowCondFieldCombo.Items.Clear();
+                        FlowCondFieldCombo.Items.Add(NoConditionField);
+                        var info = MessageCatalog.ByName(node.WaitMessage);
+                        if (info is not null)
+                            foreach (var f in info.Fields) FlowCondFieldCombo.Items.Add(f.Field);
+                        FlowCondFieldCombo.SelectedItem = string.IsNullOrEmpty(node.ConditionField) ? NoConditionField : node.ConditionField;
+                        if (FlowCondFieldCombo.SelectedItem is null) FlowCondFieldCombo.SelectedIndex = 0;
+                    }
+
+                    /// <summary>Selects the operator combo item matching the node's operator.</summary>
+                    private void SelectConditionOperator(string op)
+                    {
+                        foreach (System.Windows.Controls.ComboBoxItem item in FlowCondOperatorCombo.Items)
+                            if ((item.Content as string) == op) { FlowCondOperatorCombo.SelectedItem = item; return; }
+                        FlowCondOperatorCombo.SelectedIndex = 0;
+                    }
+
+                    private void FlowCondFieldCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        var field = FlowCondFieldCombo.SelectedItem as string ?? string.Empty;
+                        node.ConditionField = field == NoConditionField ? string.Empty : field;
+                        RedrawFlow();
+                    }
+
+                    private void FlowCondOperatorCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        node.ConditionOperator = (FlowCondOperatorCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? ">=";
+                        RedrawFlow();
+                    }
+
+                    private void FlowCondValueBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        node.ConditionValue = FlowCondValueBox.Text;
+                        RedrawFlow();
+                    }
+
+                    /// <summary>Evaluates the optional field condition of a Condition node against a
+                    /// received message; true when no field is chosen (just waiting for the message).</summary>
+                    private bool EvaluateFieldCondition(FlowNodeVisual node, byte[] data)
+                    {
+                        if (string.IsNullOrWhiteSpace(node.ConditionField)) return true;
+                        var info = MessageCatalog.ByName(node.WaitMessage);
+                        var field = info?.Fields.FirstOrDefault(f => f.Field == node.ConditionField);
+                        if (field is null) return false;
+                        return CompareFlowValues(field.Read(data), node.ConditionOperator, node.ConditionValue);
+                    }
+
+                    /// <summary>Compares two field values numerically when possible, else as text.</summary>
+                    private static bool CompareFlowValues(string actual, string op, string expected)
+                    {
+                        if (double.TryParse(actual, NumberStyles.Float, CultureInfo.InvariantCulture, out var a) &&
+                            double.TryParse(expected, NumberStyles.Float, CultureInfo.InvariantCulture, out var b))
+                        {
+                            return op switch
+                            {
+                                ">" => a > b,
+                                ">=" => a >= b,
+                                "<" => a < b,
+                                "<=" => a <= b,
+                                "==" => Math.Abs(a - b) < 1e-9,
+                                "!=" => Math.Abs(a - b) >= 1e-9,
+                                _ => false
+                            };
+                        }
+                        var cmp = string.Compare(actual?.Trim(), expected?.Trim(), StringComparison.OrdinalIgnoreCase);
+                        return op switch
+                        {
+                            "==" => cmp == 0,
+                            "!=" => cmp != 0,
+                            ">" => cmp > 0,
+                            ">=" => cmp >= 0,
+                            "<" => cmp < 0,
+                            "<=" => cmp <= 0,
+                            _ => false
+                        };
+                    }
+
+                    // ---- Flow Condition: send a message depending on the True / False result ----
+                    private const string NoSendMessage = "(none)";
+
+                    /// <summary>Fills the On True / On False "Send Message" combos with all messages.</summary>
+                    private void PopulateConditionSendCombos(FlowNodeVisual node)
+                    {
+                        FlowTrueSendCombo.Items.Clear();
+                        FlowFalseSendCombo.Items.Clear();
+                        FlowTrueSendCombo.Items.Add(NoSendMessage);
+                        FlowFalseSendCombo.Items.Add(NoSendMessage);
+                        foreach (var m in MessageCatalog.Messages)
+                        {
+                            FlowTrueSendCombo.Items.Add(m.Name);
+                            FlowFalseSendCombo.Items.Add(m.Name);
+                        }
+                        FlowTrueSendCombo.SelectedItem = string.IsNullOrEmpty(node.TrueSendMessage) ? NoSendMessage : node.TrueSendMessage;
+                        FlowFalseSendCombo.SelectedItem = string.IsNullOrEmpty(node.FalseSendMessage) ? NoSendMessage : node.FalseSendMessage;
+                        if (FlowTrueSendCombo.SelectedItem is null) FlowTrueSendCombo.SelectedIndex = 0;
+                        if (FlowFalseSendCombo.SelectedItem is null) FlowFalseSendCombo.SelectedIndex = 0;
+                    }
+
+                    private void FlowTrueSendCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        var name = FlowTrueSendCombo.SelectedItem as string ?? string.Empty;
+                        node.TrueSendMessage = name == NoSendMessage ? string.Empty : name;
+                    }
+
+                    private void FlowFalseSendCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Condition } node) return;
+                        var name = FlowFalseSendCombo.SelectedItem as string ?? string.Empty;
+                        node.FalseSendMessage = name == NoSendMessage ? string.Empty : name;
+                    }
+
+                    /// <summary>Sends a catalog message by name with its default field values (used by
+                    /// Condition and Loop nodes to emit a message on their result / each iteration).</summary>
+                    private void SendFlowMessageByName(string messageName, string result)
+                    {
+                        if (string.IsNullOrWhiteSpace(messageName)) return;
+                        var info = MessageCatalog.ByName(messageName);
+                        if (info is null) { Log($"Flow: unknown message '{messageName}' ({result})."); return; }
+                        var fields = info.Fields.Select(f => new FieldRow(f) { Value = f.DefaultValue }).ToList();
+                        SendMessageCore(info, fields, null, false, AutoSequenceCheck.IsChecked == true,
+                            AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);
+                        Log($"Flow: {result} -> sent {info.Name}.");
+                    }
+
+                    /// <summary>Fills the Loop node's "Send Message" combo with all messages.</summary>
+                    private void PopulateLoopSendCombo(FlowNodeVisual node)
+                    {
+                        FlowLoopSendCombo.Items.Clear();
+                        FlowLoopSendCombo.Items.Add(NoSendMessage);
+                        foreach (var m in MessageCatalog.Messages) FlowLoopSendCombo.Items.Add(m.Name);
+                        FlowLoopSendCombo.SelectedItem = string.IsNullOrEmpty(node.LoopSendMessage) ? NoSendMessage : node.LoopSendMessage;
+                        if (FlowLoopSendCombo.SelectedItem is null) FlowLoopSendCombo.SelectedIndex = 0;
+                    }
+
+                    private void FlowLoopSendCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+                    {
+                        if (_loadingFlowProps || _selectedFlowNode is not { Kind: FlowNodeKind.Loop } node) return;
+                        var name = FlowLoopSendCombo.SelectedItem as string ?? string.Empty;
+                        node.LoopSendMessage = name == NoSendMessage ? string.Empty : name;
+                        // Rebuild the editable field values for the newly chosen loop message.
+                        node.FieldValues = null;
+                        if (string.IsNullOrEmpty(node.LoopSendMessage))
+                        {
+                            FlowMessagePanel.Visibility = Visibility.Collapsed;
+                            _flowFields.Clear();
+                        }
+                        else
+                        {
+                            var loopInfo = MessageCatalog.ByName(node.LoopSendMessage);
+                            FlowMessagePanel.Visibility = Visibility.Visible;
+                            FlowMessageInfoText.Text = loopInfo is null
+                                ? node.LoopSendMessage
+                                : $"Loop sends: {loopInfo.Name}\nId: {loopInfo.MessageId}   Length: {loopInfo.Length} bytes";
+                            LoadFlowFields(node, node.LoopSendMessage);
+                        }
+                        RedrawFlow();
+                    }
+
+                    private void FlowZoomIn_Click(object sender, RoutedEventArgs e) => SetFlowZoom(_flowZoom * 1.25);
+                    private void FlowZoomOut_Click(object sender, RoutedEventArgs e) => SetFlowZoom(_flowZoom / 1.25);
+                    private void FlowZoomReset_Click(object sender, RoutedEventArgs e) => SetFlowZoom(1.0);
+
+                    /// <summary>Scales the whole designer canvas (with the scrollbars adapting).</summary>
+                    private void SetFlowZoom(double zoom)
+                    {
+                        _flowZoom = Math.Clamp(zoom, 0.25, 4.0);
+                        if (FlowZoomTransform is not null) { FlowZoomTransform.ScaleX = _flowZoom; FlowZoomTransform.ScaleY = _flowZoom; }
+                        if (FlowZoomText is not null) FlowZoomText.Text = $"{_flowZoom * 100:0}%";
+                    }
+
+                    /// <summary>Rebuilds the bottom Scenario Steps table from the current nodes and links.</summary>
+                    private void RefreshFlowSteps()
+                    {
+                        _flowStepRows.Clear();
+                        foreach (var node in _flowNodes)
+                        {
+                            var next = node.Kind == FlowNodeKind.Condition
+                                ? $"True -> {BranchTarget(node, FlowBranch.True)?.Label ?? "(end)"};  False -> {BranchTarget(node, FlowBranch.False)?.Label ?? "(end)"}"
+                                : NextFlowNode(node)?.Label ?? "(end)";
+                            _flowStepRows.Add(new FlowStepRow
+                            {
+                                Index = _flowOrder.TryGetValue(node, out var order) ? order : 0,
+                                Type = node.Kind.ToString(),
+                                Message = node.Kind == FlowNodeKind.Message ? node.Title : "-",
+                                Details = node.Caption.Replace("\n", "  "),
+                                Next = next
+                            });
+                        }
+                    }
+
+                    // ---- Flow execution: play the nodes in the order set by the arrows ----
+                    /// <summary>The next node the arrows point to from this one (prefers the Normal
+                    /// link, then the True branch, so linear steps and conditions both flow forward).</summary>
+                    private FlowNodeVisual? NextFlowNode(FlowNodeVisual node) =>
+                        (BranchTarget(node, FlowBranch.Normal)
+                         ?? BranchTarget(node, FlowBranch.True)
+                         ?? _flowConnections.FirstOrDefault(c => ReferenceEquals(c.From, node))?.To);
+
+                    /// <summary>The start node is the one no arrow points to (else the first node).</summary>
+                    private FlowNodeVisual? FindFlowStart()
+                    {
+                        var targets = _flowConnections.Select(c => c.To).ToHashSet();
+                        return _flowNodes.FirstOrDefault(n => !targets.Contains(n)) ?? _flowNodes.FirstOrDefault();
+                    }
+
+                    /// <summary>Numbers the nodes by following the arrows from the start, so each node
+                    /// can show its position in the send order.</summary>
+                    private void ComputeFlowOrder()
+                    {
+                        _flowOrder.Clear();
+                        var node = FindFlowStart();
+                        var index = 1;
+                        while (node is not null && !_flowOrder.ContainsKey(node))
+                        {
+                            _flowOrder[node] = index++;
+                            node = NextFlowNode(node);
+                        }
+                    }
+
+                    /// <summary>Run Scenario: executes the nodes following the arrows. A Message is sent,
+                    /// a Delay waits, a Condition waits for its message (with timeout) and a Loop repeats
+                    /// back to its target node the configured number of times.</summary>
+                    private async void RunFlow_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (_flowRunning) { Log("Flow is already running."); return; }
+                        if (_transport is null) { Log("Start the transport before running the flow."); return; }
+                        if (_flowNodes.Count == 0) { Log("The flow has no nodes."); return; }
+                        _flowRunning = true;
+                        _flowRunCts = new System.Threading.CancellationTokenSource();
+                        try { await RunFlowAsync(_flowRunCts.Token); }
+                        catch (OperationCanceledException) { Log("Flow: stopped."); }
+                        catch (Exception ex) { Log("Flow error: " + ex.Message); }
+                        finally { _flowRunning = false; _runningFlowNode = null; RedrawFlow(); }
+                    }
+
+                    private void StopFlow_Click(object sender, RoutedEventArgs e)
+                    {
+                        if (!_flowRunning) return;
+                        _flowRunCts?.Cancel();
+                        Log("Flow: stop requested.");
+                    }
+
+                    /// <summary>Walks the flow from the start node following the connection arrows.</summary>
+                    private async Task RunFlowAsync(System.Threading.CancellationToken token)
+                    {
+                        var node = FindFlowStart();
+                        if (node is null) { Log("Flow: no start node."); return; }
+                        var loopRemaining = new Dictionary<FlowNodeVisual, int>();
+                        var steps = 0;
+                        Log("Flow: run started.");
+                        while (node is not null && !token.IsCancellationRequested)
+                        {
+                            if (steps++ > 10000) { Log("Flow: step limit reached, stopping."); break; }
+                            _runningFlowNode = node;
+                            RedrawFlow();
+                            switch (node.Kind)
+                            {
+                                case FlowNodeKind.Message:
+                                    var info = MessageCatalog.ByName(node.Title);
+                                    if (info is null) { Log($"Flow: unknown message '{node.Title}'."); }
+                                    else
+                                    {
+                                        var fields = BuildFlowFields(info, node);
+                                        var arrayCells = BuildFlowArrayCells(info, node);
+                                        SendMessageCore(info, fields, arrayCells, false, AutoSequenceCheck.IsChecked == true,
+                                            AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);
+                                        Log($"Flow: sent {info.Name}.");
+                                    }
+                                    break;
+                                case FlowNodeKind.Delay:
+                                    Log($"Flow: delay {node.DelayMs} ms.");
+                                    await Task.Delay(Math.Max(1, node.DelayMs), token);
+                                    break;
+                                case FlowNodeKind.Condition:
+                                    var condText = string.IsNullOrWhiteSpace(node.ConditionField)
+                                        ? string.Empty
+                                        : $" [{node.ConditionField} {node.ConditionOperator} {node.ConditionValue}]";
+                                    Log($"Flow: waiting for {node.WaitMessage}{condText} (timeout {node.TimeoutMs} ms).");
+                                    var received = await WaitForFlowMessageAsync(node.WaitMessage, node.TimeoutMs, token);
+                                    if (token.IsCancellationRequested) break;
+                                    bool conditionPass;
+                                    if (received is null)
+                                    {
+                                        conditionPass = node.IgnoreTimeout;
+                                        Log(conditionPass
+                                            ? $"Flow: timeout on {node.WaitMessage} but Ignore Timeout is set -> True branch."
+                                            : $"Flow: timeout waiting for {node.WaitMessage} -> False branch.");
+                                    }
+                                    else
+                                    {
+                                        conditionPass = EvaluateFieldCondition(node, received);
+                                        Log(conditionPass
+                                            ? $"Flow: {node.WaitMessage} received and condition met -> True branch."
+                                            : $"Flow: {node.WaitMessage} received but condition not met -> False branch.");
+                                    }
+                                    // Send the message configured for this result (if any).
+                                    SendFlowMessageByName(conditionPass ? node.TrueSendMessage : node.FalseSendMessage, conditionPass ? "condition True" : "condition False");
+                                    node = BranchTarget(node, conditionPass ? FlowBranch.True : FlowBranch.False);
+                                    continue;
+                                case FlowNodeKind.Loop:
+                                    if (!loopRemaining.TryGetValue(node, out var rem)) rem = Math.Max(1, node.LoopCount);
+                                    // Send the loop's message (with its edited field values) on each pass.
+                                    if (!string.IsNullOrWhiteSpace(node.LoopSendMessage))
+                                    {
+                                        var loopInfo = MessageCatalog.ByName(node.LoopSendMessage);
+                                        if (loopInfo is null) Log($"Flow: unknown loop message '{node.LoopSendMessage}'.");
+                                        else
+                                        {
+                                            var loopFields = BuildFlowFields(loopInfo, node);
+                                            var loopArrays = BuildFlowArrayCells(loopInfo, node);
+                                            SendMessageCore(loopInfo, loopFields, loopArrays, false, AutoSequenceCheck.IsChecked == true,
+                                                AutoTimestampCheck.IsChecked == true, AutoCrcCheck.IsChecked == true);
+                                            Log($"Flow: loop {node.LoopCount - rem + 1}/{node.LoopCount} -> sent {loopInfo.Name}.");
+                                        }
+                                    }
+                                    var back = NextFlowNode(node);
+                                    if (rem > 1)
+                                    {
+                                        loopRemaining[node] = rem - 1;
+                                        Log($"Flow: loop iteration done ({rem - 1} more).");
+                                        node = back ?? node;
+                                        continue;
+                                    }
+                                    loopRemaining.Remove(node);
+                                    Log("Flow: loop finished.");
+                                    node = null;
+                                    continue;
+                            }
+                            node = NextFlowNode(node);
+                        }
+                        Log("Flow: run finished.");
+                    }
+
+                    /// <summary>Completes when a message with the given name is received, or on timeout.</summary>
+                    private async Task<byte[]?> WaitForFlowMessageAsync(string message, int timeoutMs, System.Threading.CancellationToken token)
+                    {
+                        var tcs = new TaskCompletionSource<byte[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        _flowWaitMessage = message;
+                        _flowWaitTcs = tcs;
+                        using var timeoutCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(token);
+                        timeoutCts.CancelAfter(Math.Max(1, timeoutMs));
+                        using (timeoutCts.Token.Register(() => tcs.TrySetResult(null)))
+                        {
+                            try { return await tcs.Task; }
+                            finally { _flowWaitTcs = null; _flowWaitMessage = null; }
+                        }
+                    }
+
+                    /// <summary>Releases a Condition node that is waiting for the received message,
+                    /// handing it the raw bytes so its field condition can be evaluated.</summary>
+                    private void CheckFlowWait(string name, byte[] data)
+                    {
+                        if (_flowWaitTcs is not null && string.Equals(_flowWaitMessage, name, StringComparison.Ordinal))
+                            _flowWaitTcs.TrySetResult(data);
+                    }
+
+                    private void FlowClear_Click(object sender, RoutedEventArgs e)
+                    {
+                        _flowRunCts?.Cancel();
+                        _flowNodes.Clear();
+                        _flowConnections.Clear();
+                        _flowConnectStart = null;
+                        _flowConnectDragFrom = null;
+                        _flowConnectDragTo = null;
+                        _runningFlowNode = null;
+                        _flowNodeSeq = 0;
+                        SelectFlowNode(null);
+                        Log("Flow: cleared the designer.");
                     }
 
             """);
@@ -3611,6 +4859,86 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("        public IReadOnlyList<ArrayCellRow> SendArrayCells { get; init; } = Array.Empty<ArrayCellRow>();");
             sb.AppendLine("        public int StepIndex { get; init; }");
             sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>The kind of node shown on the Flow designer canvas.</summary>");
+            sb.AppendLine("    public enum FlowNodeKind { Message, Condition, Delay, Loop }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>The branch a connection represents: a plain next link, or the True /");
+            sb.AppendLine("    /// False outcome of a Condition node.</summary>");
+            sb.AppendLine("    public enum FlowBranch { Normal, True, False }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>One node on the Flow designer: a Message (rectangle), a Condition");
+            sb.AppendLine("    /// (rhombus), a Delay or a Loop, with its position, size and edited properties.</summary>");
+            sb.AppendLine("    public sealed class FlowNodeVisual");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public FlowNodeKind Kind { get; init; }");
+            sb.AppendLine("        /// <summary>Stable id used to label the node in combos and the steps table.</summary>");
+            sb.AppendLine("        public int Id { get; set; }");
+            sb.AppendLine("        public string Title { get; set; } = string.Empty;");
+            sb.AppendLine("        public double Left { get; set; }");
+            sb.AppendLine("        public double Top { get; set; }");
+            sb.AppendLine("        public double Width => Kind == FlowNodeKind.Condition ? 160 : 140;");
+            sb.AppendLine("        public double Height => Kind == FlowNodeKind.Condition ? 64 : 52;");
+            sb.AppendLine("        public double CenterX => Left + Width / 2;");
+            sb.AppendLine("        public double Bottom => Top + Height;");
+            sb.AppendLine("        // Condition properties.");
+            sb.AppendLine("        public string WaitMessage { get; set; } = string.Empty;");
+            sb.AppendLine("        public int TimeoutMs { get; set; } = 5000;");
+            sb.AppendLine("        /// <summary>When true the condition always takes the True branch (timeout ignored).</summary>");
+            sb.AppendLine("        public bool IgnoreTimeout { get; set; }");
+            sb.AppendLine("        /// <summary>Optional logical test on a field of the awaited message, e.g.");
+            sb.AppendLine("        /// Field1 >= 5. An empty ConditionField means 'just wait for the message'.</summary>");
+            sb.AppendLine("        public string ConditionField { get; set; } = string.Empty;");
+            sb.AppendLine("        public string ConditionOperator { get; set; } = \">=\";");
+            sb.AppendLine("        public string ConditionValue { get; set; } = string.Empty;");
+            sb.AppendLine("        /// <summary>Messages to send when the condition is True / False (empty = none).</summary>");
+            sb.AppendLine("        public string TrueSendMessage { get; set; } = string.Empty;");
+            sb.AppendLine("        public string FalseSendMessage { get; set; } = string.Empty;");
+            sb.AppendLine("        // Delay / Loop properties.");
+            sb.AppendLine("        public int DelayMs { get; set; } = 1000;");
+            sb.AppendLine("        public int LoopCount { get; set; } = 3;");
+            sb.AppendLine("        /// <summary>Message the Loop sends on each iteration (empty = none).</summary>");
+            sb.AppendLine("        public string LoopSendMessage { get; set; } = string.Empty;");
+            sb.AppendLine("        public string Description { get; set; } = string.Empty;");
+            sb.AppendLine("        /// <summary>The edited field values this Message node sends (field path -> value,");
+            sb.AppendLine("        /// plus \"name#count\" entries for arrays), like a scenario step.</summary>");
+            sb.AppendLine("        public Dictionary<string, string>? FieldValues { get; set; }");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>Display label for combos and the steps table, e.g. \"#3 STATUS_MESSAGE\".</summary>");
+            sb.AppendLine("        public string Label => Kind == FlowNodeKind.Message ? $\"#{Id} {Title}\" : $\"#{Id} {Kind}\";");
+            sb.AppendLine();
+            sb.AppendLine("        /// <summary>The multi-line caption drawn inside the node shape.</summary>");
+            sb.AppendLine("        public string Caption => Kind switch");
+            sb.AppendLine("        {");
+            sb.AppendLine("            FlowNodeKind.Message => Title,");
+            sb.AppendLine("            FlowNodeKind.Condition => string.IsNullOrWhiteSpace(ConditionField)");
+            sb.AppendLine("                ? $\"Condition\\nWait: {WaitMessage}\\nTimeout: {TimeoutMs} ms\"");
+            sb.AppendLine("                : $\"Condition\\nWait: {WaitMessage}\\n{ConditionField} {ConditionOperator} {ConditionValue}\",");
+            sb.AppendLine("            FlowNodeKind.Delay => $\"Delay\\n{DelayMs} ms\",");
+            sb.AppendLine("            _ => string.IsNullOrWhiteSpace(LoopSendMessage)");
+            sb.AppendLine("                ? $\"Loop\\nRepeat {LoopCount} times\"");
+            sb.AppendLine("                : $\"Loop\\nRepeat {LoopCount} times\\nSend: {LoopSendMessage}\"");
+            sb.AppendLine("        };");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>A directed connection between two Flow nodes, carrying the branch it");
+            sb.AppendLine("    /// represents (plain next link, or a Condition's True / False outcome).</summary>");
+            sb.AppendLine("    public sealed class FlowConnection");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public FlowNodeVisual From { get; init; } = null!;");
+            sb.AppendLine("        public FlowNodeVisual To { get; init; } = null!;");
+            sb.AppendLine("        public FlowBranch Branch { get; set; } = FlowBranch.Normal;");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>One row of the Flow tab's bottom Scenario Steps table.</summary>");
+            sb.AppendLine("    public sealed class FlowStepRow");
+            sb.AppendLine("    {");
+            sb.AppendLine("        public int Index { get; set; }");
+            sb.AppendLine("        public string Type { get; set; } = string.Empty;");
+            sb.AppendLine("        public string Message { get; set; } = string.Empty;");
+            sb.AppendLine("        public string Details { get; set; } = string.Empty;");
+            sb.AppendLine("        public string Next { get; set; } = string.Empty;");
+            sb.AppendLine("    }");
             sb.AppendLine("}");
             return sb.ToString();
         }
@@ -4181,6 +5509,22 @@ namespace InterfaceWrapper.Services
             sb.AppendLine("  average / minimum / maximum message size, last RX/TX timestamps, seconds");
             sb.AppendLine("  since the last message, receive errors and dropped (unknown id) messages;");
             sb.AppendLine("  refreshed every second, with a totals summary line and a reset button.");
+            sb.AppendLine("- Flow tab: a visual scenario designer. Drag messages and flow items from the");
+            sb.AppendLine("  left palette onto the canvas - a Message is drawn as a rectangle and a Condition");
+            sb.AppendLine("  as a rhombus (Delay and Loop too). Move a node by dragging it; draw an ordering");
+            sb.AppendLine("  arrow by dragging the blue dot at the bottom of an action onto another action");
+            sb.AppendLine("  (or right-click one node then another). The arrows set the send order and each");
+            sb.AppendLine("  node shows its order number; edit the selected step in the Step Properties panel. The");
+            sb.AppendLine("  'Run Scenario' button plays the flow: it sends each Message in order, waits on a");
+            sb.AppendLine("  Condition for its message (with timeout), pauses on a Delay and repeats on a Loop.");
+            sb.AppendLine("  A Condition can also carry a logical test on a field of the awaited message");
+            sb.AppendLine("  (e.g. Field1 >= 5, chosen in Step Properties): when the message arrives the field");
+            sb.AppendLine("  is compared and the True branch is taken when it holds, otherwise the False branch.");
+            sb.AppendLine("  Each Condition result can also send a message: pick a 'Send Message' for the True");
+            sb.AppendLine("  and / or False outcome and it is sent (with default field values) before the branch");
+            sb.AppendLine("  is followed.");
+            sb.AppendLine("  A Loop can also select a 'Send Message' and edit its field values; that message is");
+            sb.AppendLine("  sent on each iteration when the flow reaches the loop.");
             sb.AppendLine("- Look & Feel selector in the header: Dark Blue (default), Midnight Black,");
             sb.AppendLine("  Light and Military Green themes; the whole UI (panels, tables, graphs)");
             sb.AppendLine("  restyles instantly.");
